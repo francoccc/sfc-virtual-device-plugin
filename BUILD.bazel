@@ -1,0 +1,5 @@
+genrule(
+    name = "myprojectenv",
+    outs = ["envs.txt"],
+    cmd = "printenv > $@",
+)

@@ -1,0 +1,21 @@
+build --workspace_status_command=`pwd`/linux_kernel_comp.sh
+
+build --action_env=CC
+build --action_env=CXX
+build --action_env=LLVM_CONFIG
+build --action_env=PATH
+
+
+# build --copt=-std=gnu99
+
+build --cxxopt=-Wno-char-subscripts
+build --cxxopt=-Wno-sign-compare
+build --cxxopt=-Wno-format
+build --cxxopt=-Wno-reorder
+build --cxxopt=-Wno-switch
+build --cxxopt=-Wno-unused-function
+build --cxxopt=-std=gnu++11
+build --cxxopt=-fpermissive
+build --cxxopt=-Wunused-variable
+
+build --cxxopt=-Iexternal/onload/src/include

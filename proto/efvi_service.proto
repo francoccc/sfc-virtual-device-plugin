@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+option go_package = "example.com/repo/efvi/service";
+package main;
+
+message ApplyRequest {
+  string host = 1;
+  int32 port = 2;
+}
+
+message ViResource {
+  int32 code = 1;
+  string message = 2;
+}
+
+service EfviService {
+  rpc ApplyVirtualDevice(ApplyRequest) returns (ViResource) {}
+}

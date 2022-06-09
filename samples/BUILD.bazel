@@ -1,0 +1,86 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+
+cc_library(
+    name = "efvi_op",
+    srcs = [
+        "efvi_global.hpp",
+        "efvi_rx.hpp",
+        "efvi_tx.hpp",
+    ],
+    hdrs = [
+        "efvi_global.hpp",
+        "efvi_rx.hpp",
+        "efvi_tx.hpp",
+    ],
+    deps = [
+        "@onload//:ciul",
+        "@onload//:zocket",
+    ],
+)
+
+cc_library(
+    name = "citools",
+    srcs = [
+        "citools.c",
+        "citools.h",
+    ],
+    hdrs = [
+        "citools.h",
+    ],
+    copts = [
+        "-Iexternal/onload/src/include",
+    ],
+    deps = [
+        "@onload//:ci_tool",
+    ],
+)
+
+cc_binary(
+    name = "efvi_allocator",
+    srcs = [
+        "efvi_allocator.cpp",
+    ],
+    copts = [
+        "-Iexternal/onload/src/include",
+    ],
+    defines = [
+        "ENTRYPOINT",
+    ],
+    deps = [
+        ":citools",
+        ":efvi_op",
+        "//util",
+    ],
+)
+
+cc_binary(
+    name = "efvi_client",
+    srcs = [
+        "efvi_client.cpp",
+    ],
+    copts = [
+        "-Iexternal/onload/src/include",
+    ],
+    defines = [
+        "ENTRYPOINT",
+    ],
+    deps = [
+        ":citools",
+        ":efvi_op",
+        "//util",
+    ],
+)
+
+cc_binary(
+    name = "samples",
+    srcs = [
+        "samples.c",
+    ],
+    copts = [
+        "-Iexternal/onload/src/include",
+    ],
+    deps = [
+        "@onload//:ci_tool",
+        "@onload//:ciul",
+    ],
+)
