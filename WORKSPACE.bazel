@@ -4,51 +4,23 @@ load("//:deps.bzl", "external_build")
 
 external_build("sfc-virtual-device-plugin")
 
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-# rules_proto defines abstract rules for building Protocol Buffers.
-http_archive(
-    name = "rules_proto",
-    sha256 = "2490dca4f249b8a9a3ab07bd1ba6eca085aaf8e45a734af92aad0c42d9dc7aaf",
-    strip_prefix = "rules_proto-218ffa7dfa5408492dc86c01ee637614f8695c45",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_proto/archive/218ffa7dfa5408492dc86c01ee637614f8695c45.tar.gz",
-        "https://github.com/bazelbuild/rules_proto/archive/218ffa7dfa5408492dc86c01ee637614f8695c45.tar.gz",
-    ],
-)
+# grpc rules
+load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps", "grpc_test_only_deps")
+grpc_deps()
+grpc_test_only_deps()
 
-load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
+# load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
+load("//:grpc.bzl", grpc_extra_deps = "_grpc_extra_deps")
+grpc_extra_deps()
 
-rules_proto_dependencies()
-
-rules_proto_toolchains()
 
 # io_bazel_rules_go define rules for build go binary
-http_archive(
-    name = "io_bazel_rules_go",
-    sha256 = "8e968b5fcea1d2d64071872b12737bbb5514524ee5f0a4f54f5920266c261acb",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/rules_go/releases/download/v0.28.0/rules_go-v0.28.0.zip",
-        "https://github.com/bazelbuild/rules_go/releases/download/v0.28.0/rules_go-v0.28.0.zip",
-    ],
-)
-
-load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
-
+load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
 go_rules_dependencies()
-
-go_register_toolchains(version = "1.18")
+go_register_toolchains(go_version = "1.18")  # Attention: From grpc_extra_deps()
 
 # bazel_gazelle rules
-http_archive(
-    name = "bazel_gazelle",
-    sha256 = "de69a09dc70417580aabf20a28619bb3ef60d038470c7cf8442fafcf627c21cb",
-    urls = [
-        "https://mirror.bazel.build/github.com/bazelbuild/bazel-gazelle/releases/download/v0.24.0/bazel-gazelle-v0.24.0.tar.gz",
-        "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.24.0/bazel-gazelle-v0.24.0.tar.gz",
-    ],
-)
-
 load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
 
 gazelle_dependencies(go_repository_default_config = "//:WORKSPACE.bazel")
@@ -59,10 +31,36 @@ load("//:go_deps.bzl", "go_repositories")
 # gazelle:repository_macro go_deps.bzl%go_repositories
 go_repositories()
 
-load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 
-grpc_deps()
 
-load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
+# rules_proto(v2) declarations
+register_toolchains("@build_stack_rules_proto//toolchain:standard")
 
-grpc_extra_deps()
+load("@build_stack_rules_proto//:go_deps.bzl", "gazelle_protobuf_extension_go_deps")
+
+gazelle_protobuf_extension_go_deps()  # this brings @com_github_emicklei_proto  github.com/emicklei/proto
+
+load("@build_stack_rules_proto//deps:protobuf_core_deps.bzl", "protobuf_core_deps")
+protobuf_core_deps()  # this brings @com_google_protobuf
+
+load("@build_stack_rules_proto//deps:go_core_deps.bzl", "go_core_deps")
+go_core_deps()   # this bring org_golang_google_grpc org_golang_google_grpc_cmd_protoc_gen_go_grpc
+
+
+
+
+
+
+
+
+
+# # rules_proto defines abstract rules for building Protocol Buffers.
+# load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")
+
+# rules_proto_dependencies()
+
+# rules_proto_toolchains()
+
+# load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+
+# protobuf_deps()

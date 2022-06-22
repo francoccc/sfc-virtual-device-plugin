@@ -1,5 +1,24 @@
+load("@bazel_gazelle//:def.bzl", "gazelle", "gazelle_binary")
+
 genrule(
     name = "myprojectenv",
     outs = ["envs.txt"],
     cmd = "printenv > $@",
+)
+
+gazelle_binary(
+    name = "gazelle-protobuf",
+    languages = [
+        "@bazel_gazelle//language/go",
+        "@bazel_gazelle//language/proto",
+        "@build_stack_rules_proto//language/protobuf",
+    ],
+)
+
+gazelle(
+    name = "gazelle",
+    args = [
+        "-proto_configs=gazelle_config.yaml",
+    ],
+    gazelle = ":gazelle-protobuf",
 )

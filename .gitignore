@@ -8,3 +8,4 @@ contrib/linux-headers-common
 # exclude local zip file
 *.tgz
 *.zip
+*.txt
