@@ -1,3 +1,10 @@
+/*
+ * @Descripition: 
+ * @Author: Franco Chen
+ * @Date: 2022-05-09 14:34:57
+ * @LastEditors: Franco Chen
+ * @LastEditTime: 2022-07-01 16:20:21
+ */
 #pragma once
 
 
@@ -15,6 +22,12 @@ static ef_pd pd;
 static bool efvi_context_initialized = false;
 static ef_vi* vi;
 static ef_memreg memreg;
+static ef_filter_cookie filter_cookie_out;
+
+static unsigned long vi_recv_prefix;
+static unsigned long post_index;
+static unsigned long rcv_index;
+static unsigned long deal_index;
 
 static uint32_t laddr_he = 0xac108564;  /* 172.16.133.100 */
 static uint32_t raddr_he = 0xac010203;  /* 172.1.2.3 */

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "efvi_global.hpp"
-
 #include "util/util.hpp"
 
 static inline void dma_send(pkt_buf* pb, ef_vi* vi, int frame_len) {

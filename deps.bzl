@@ -13,8 +13,8 @@ def _build_external_local_repo(path, build_file, repo = None):
 def external_build(name):
     """
     BUILD external dependencies
-    
-    Args: 
+
+    Args:
         name: Workspace name
     """
 
@@ -39,7 +39,7 @@ def external_build(name):
             strip_prefix = "grpc-3ad945947c6d2f47186c9c082ac46c13958292a6",
             urls = ["https://github.com/grpc/grpc/archive/3ad945947c6d2f47186c9c082ac46c13958292a6.tar.gz"],
         )
-        
+
     if "io_bazel_rules_go" not in native.existing_rules():
         http_archive(
             name = "io_bazel_rules_go",
@@ -49,7 +49,7 @@ def external_build(name):
                 "https://github.com/bazelbuild/rules_go/releases/download/v0.28.0/rules_go-v0.28.0.zip",
             ],
         )
-        
+
     # if "org_golang_google_protobuf" not in native.existing_rules():
     #     http_archive(
     #         name = "org_golang_google_protobuf",
@@ -58,7 +58,7 @@ def external_build(name):
     #             "https://github.com/protocolbuffers/protobuf-go/archive/refs/tags/v1.28.0.tar.gz",
     #         ]
     #     )
-    
+
     if "bazel_gazelle" not in native.existing_rules():
         http_archive(
             name = "bazel_gazelle",
@@ -68,7 +68,7 @@ def external_build(name):
                 "https://github.com/bazelbuild/bazel-gazelle/releases/download/v0.24.0/bazel-gazelle-v0.24.0.tar.gz",
             ],
         )
-        
+
     # if "rules_proto" not in native.existing_rules():
     #     http_archive(
     #         name = "rules_proto",
@@ -79,7 +79,7 @@ def external_build(name):
     #             "https://github.com/bazelbuild/rules_proto/archive/218ffa7dfa5408492dc86c01ee637614f8695c45.tar.gz",
     #         ],
     #     )
-        
+
     if "build_stack_rules_proto" not in native.existing_rules():
         # Branch: master
         # Commit: 7c95feba87ae269d09690fcebb18c77d8b8bcf6a
@@ -94,7 +94,7 @@ def external_build(name):
             strip_prefix = "rules_proto-7c95feba87ae269d09690fcebb18c77d8b8bcf6a",
             urls = ["https://github.com/stackb/rules_proto/archive/7c95feba87ae269d09690fcebb18c77d8b8bcf6a.tar.gz"],
         )
-                
+
     if "build_bazel_rules_apple" not in native.existing_rules():
         http_archive(
             name = "build_bazel_rules_apple",
@@ -114,7 +114,7 @@ def external_build(name):
                 "https://github.com/bazelbuild/apple_support/releases/download/0.11.0/apple_support.0.11.0.tar.gz",
             ],
         )
-    
+
     if "com_google_googleapis" not in native.existing_rules():
         http_archive(
             name = "com_google_googleapis",
@@ -125,6 +125,13 @@ def external_build(name):
                 "https://github.com/googleapis/googleapis/archive/2f9af297c84c55c8b871ba4495e01ade42476c92.tar.gz",
             ],
         )
-        
+
+    if "io_bazel_rules_docker" not in native.existing_rules():
+        http_archive(
+            name = "io_bazel_rules_docker",
+            strip_prefix = "rules_docker-0.16.0-beta.2",
+            urls = ["https://github.com/francoccc/rules_docker/archive/refs/tags/v0.16.0-beta.2.tar.gz"],
+        )
+
     _build_external_local_repo("contrib/linux-headers-common", "//bazel:linux_headers.BUILD", "linux")
     _build_external_local_repo("contrib/onload", "//bazel:openonload.BUILD", "onload")

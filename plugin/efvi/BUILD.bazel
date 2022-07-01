@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "efvi",
+    srcs = [
+        "efvi.pb.go",
+        "efvi_grpc.pb.go",
+    ],
+    importpath = "plugin/efvi",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//plugin/vendor/google.golang.org/grpc",
+        "//plugin/vendor/google.golang.org/grpc/codes",
+        "//plugin/vendor/google.golang.org/grpc/status",
+        "//plugin/vendor/google.golang.org/protobuf/reflect/protoreflect",
+        "//plugin/vendor/google.golang.org/protobuf/runtime/protoimpl",
+    ],
+)

@@ -1,5 +1,8 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
 load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+load("@io_bazel_rules_docker//container:container.bzl", "container_image", "container_layer", "container_push")
+load("@io_bazel_rules_docker//docker/package_managers:download_pkgs.bzl", "download_pkgs")
+load("@io_bazel_rules_docker//docker/package_managers:install_pkgs.bzl", "install_pkgs")
 
 # gazelle:prefix plugin
 gazelle(name = "gazelle")
@@ -14,16 +17,76 @@ gazelle(
     command = "update-repos",
 )
 
+go_library(
+    name = "plugin_lib",
+    srcs = ["main.go"],
+    importpath = "plugin",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//plugin/deviceplugin",
+        "//plugin/util",
+        "//plugin/vendor/github.com/golang/glog",
+        "//plugin/vendor/k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1",
+    ],
+)
+
 go_binary(
     name = "plugin",
     embed = [":plugin_lib"],
     visibility = ["//visibility:public"],
 )
 
-go_library(
-    name = "plugin_lib",
-    srcs = ["sfc-virtual-device-plugin.go"],
-    importpath = "plugin",
-    visibility = ["//visibility:private"],
-    deps = ["//plugin/vendor/k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1alpha"],
+container_layer(
+    name = "entrypoint",
+    directory = "/app",
+    files = [":start.sh"],
+)
+
+download_pkgs(
+    name = "container_cmds",
+    image_tar = "@debian-slim//image",
+    packages = [
+        "iproute2",
+        "lshw",
+        "ssh",
+    ],
+)
+
+install_pkgs(
+    name = "base_image",
+    image_tar = "@debian-slim//image",
+    installables_tar = ":container_cmds.tar",
+    installation_cleanup_commands = "rm -rf /var/lib/apt/lists/*",
+    output_image_name = "base_image",
+)
+
+container_image(
+    name = "vsfc_plugin_img",
+    base = ":base_image.tar",
+    cmd = [
+        "/bin/sh",
+        "-c",
+        "while true; do sleep 10000; done",
+    ],
+    directory = "/app/",
+    files = [
+        ":plugin",
+        "//samples:efvi_allocator",
+    ],
+    layers = [
+        ":entrypoint",
+    ],
+    mode = "0o755",
+    repository = "highfort",
+    stamp = True,
+    visibility = ["//visibility:public"],
+)
+
+container_push(
+    name = "publish_image",
+    format = "Docker",
+    image = ":vsfc_plugin_img",
+    registry = "registry.corp.highfortfunds.com",
+    repository = "highfort/plugin/vsfc",
+    tag = "latest",
 )

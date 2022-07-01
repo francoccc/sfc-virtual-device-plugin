@@ -4,24 +4,27 @@ load("//:deps.bzl", "external_build")
 
 external_build("sfc-virtual-device-plugin")
 
-
 # grpc rules
 load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps", "grpc_test_only_deps")
+
 grpc_deps()
+
 grpc_test_only_deps()
 
 # load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
 load("//:grpc.bzl", grpc_extra_deps = "_grpc_extra_deps")
+
 grpc_extra_deps()
 
-
 # io_bazel_rules_go define rules for build go binary
-load("@io_bazel_rules_go//go:deps.bzl", "go_rules_dependencies", "go_register_toolchains")
+load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
+
 go_rules_dependencies()
+
 go_register_toolchains(go_version = "1.18")  # Attention: From grpc_extra_deps()
 
 # bazel_gazelle rules
-load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies")
+load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 gazelle_dependencies(go_repository_default_config = "//:WORKSPACE.bazel")
 
@@ -31,8 +34,6 @@ load("//:go_deps.bzl", "go_repositories")
 # gazelle:repository_macro go_deps.bzl%go_repositories
 go_repositories()
 
-
-
 # rules_proto(v2) declarations
 register_toolchains("@build_stack_rules_proto//toolchain:standard")
 
@@ -41,18 +42,55 @@ load("@build_stack_rules_proto//:go_deps.bzl", "gazelle_protobuf_extension_go_de
 gazelle_protobuf_extension_go_deps()  # this brings @com_github_emicklei_proto  github.com/emicklei/proto
 
 load("@build_stack_rules_proto//deps:protobuf_core_deps.bzl", "protobuf_core_deps")
+
 protobuf_core_deps()  # this brings @com_google_protobuf
 
-load("@build_stack_rules_proto//deps:go_core_deps.bzl", "go_core_deps")
-go_core_deps()   # this bring org_golang_google_grpc org_golang_google_grpc_cmd_protoc_gen_go_grpc
+# load("@build_stack_rules_proto//deps:go_core_deps.bzl", "go_core_deps")
+# go_core_deps()   # this bring org_golang_google_grpc org_golang_google_grpc_cmd_protoc_gen_go_grpc
+go_repository(
+    name = "org_golang_google_grpc_cmd_protoc_gen_go_grpc",
+    build_file_proto_mode = "disable_global",
+    importpath = "google.golang.org/grpc/cmd/protoc-gen-go-grpc",
+    sum = "h1:M1YKkFIboKNieVO5DLUEVzQfGwJD30Nv2jfUgzb5UcE=",
+    version = "v1.1.0",
+)
 
+load(
+    "@io_bazel_rules_docker//repositories:repositories.bzl",
+    container_repositories = "repositories",
+)
 
+container_repositories()
 
+load("@io_bazel_rules_docker//repositories:deps.bzl", container_deps = "deps")
 
+container_deps()
 
+load(
+    "@io_bazel_rules_docker//go:image.bzl",
+    _go_image_repos = "repositories",
+)
 
+_go_image_repos()
 
+load(
+    "@io_bazel_rules_docker//container:container.bzl",
+    "container_pull",
+)
 
+container_pull(
+    name = "go_alpine",
+    registry = "index.docker.io",
+    repository = "golang",
+    tag = "alpine3.6",
+)
+
+container_pull(
+    name = "debian-slim",
+    registry = "index.docker.io",
+    repository = "debian",
+    tag = "bullseye-slim",
+)
 
 # # rules_proto defines abstract rules for building Protocol Buffers.
 # load("@rules_proto//proto:repositories.bzl", "rules_proto_dependencies", "rules_proto_toolchains")

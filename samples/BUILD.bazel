@@ -1,5 +1,7 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
+package(default_visibility = ["//visibility:public"])
+
 cc_library(
     name = "efvi_op",
     srcs = [
@@ -41,15 +43,22 @@ cc_binary(
         "efvi_allocator.cpp",
     ],
     copts = [
+        "-std=c++2a",
         "-Iexternal/onload/src/include",
     ],
     defines = [
         "ENTRYPOINT",
     ],
+    linkopts = [
+        "-lpthread",
+    ],
     deps = [
         ":citools",
         ":efvi_op",
+        "//proto:efvi_cc_library",
+        "//proto:efvi_grpc_cc_library",
         "//util",
+        "@com_github_grpc_grpc//:grpc++",
     ],
 )
 
@@ -63,6 +72,9 @@ cc_binary(
     ],
     defines = [
         "ENTRYPOINT",
+    ],
+    linkopts = [
+        "-lpthread",
     ],
     deps = [
         ":citools",
@@ -82,5 +94,12 @@ cc_binary(
     deps = [
         "@onload//:ci_tool",
         "@onload//:ciul",
+    ],
+)
+
+cc_binary(
+    name = "interface_info",
+    srcs = [
+        "interface_info.cpp",
     ],
 )

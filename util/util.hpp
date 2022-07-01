@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
+#include <stdio.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -19,3 +20,12 @@
       abort();                                                  \
     }                                                           \
   } while( 0 )
+  
+
+void print_hex(const unsigned char *data, size_t len) {
+  printf("packet len:%d\n", len);
+  for(int i = 0; i < len; i++) {
+    printf("%02X ", data[i]);
+  }
+  printf("\n");
+}

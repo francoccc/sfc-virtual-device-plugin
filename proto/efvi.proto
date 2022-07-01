@@ -1,16 +1,19 @@
 syntax = "proto3";
 
-option go_package = "example.com/repo/efvi/service";
-package main;
+option go_package = "github.com/francoccc/sfc-virtual-device-plugin/efvi";
+package efvi;
 
 message ApplyRequest {
   string host = 1;
   int32 port = 2;
+  string interface = 3;
+  string name = 4;
 }
 
 message ViResource {
   int32 code = 1;
   string message = 2;
+  string viPath = 3;
 }
 
 service EfviService {

@@ -1,17 +1,70 @@
-#include "string.h"
 
+
+#include "string.h"
+#include <memory>
+#include <thread>
+#include <chrono>
 #include <arpa/inet.h>
 #include <net/if.h>
+#include <linux/if_ether.h>
 
 #include "efvi_global.hpp"
 #include "efvi_tx.hpp"
 #include "util/util.hpp"
 #include "util/net_util.hpp"
 
+#include <grpcpp/grpcpp.h>
+#include "proto/efvi.grpc.pb.h"
+
 #include "citools.h"
 
+#define MAC_FMT "%02x:%02x:%02x:%02x:%02x:%02x"
+
+using namespace std::chrono_literals;
+
+
+void init_efvi_context(int ifindex);
+void alloc_virtual_interface(const char* vi_name);
+void init_packet_buffer(std::string vi_name, std::string pkt_buf_name);
+
+class EfviAllocService final : public efvi::EfviService::Service {
+public:
+  
+  grpc::Status ApplyVirtualDevice(grpc::ServerContext* context, 
+        const efvi::ApplyRequest* request, efvi::ViResource* response) override {
+    int ifindex;
+    std::cout << "[efvi_allocator] efvi_interface: " << request->interface() << std::endl;
+    parse_interface(request->interface().c_str(), &ifindex);
+    init_efvi_context(ifindex);
+    std::cout << "[efvi_allocator] ifindex: " << ifindex << std::endl;
+    alloc_virtual_interface(request->name().c_str());
+    init_packet_buffer(request->name().c_str(), "queue");
+    response->set_code(0);
+    response->set_vipath("/dev/shm/" + request->name());
+    return grpc::Status::OK;
+  }
+private:
+  int index = 0;
+};
+
+void start_server(const std::string& server_addr) {
+  std::cout << "[efvi_allocator] start_server at:" << server_addr << std::endl;
+  grpc::ServerBuilder builder;
+  EfviAllocService service;
+  builder.AddListeningPort(server_addr, grpc::InsecureServerCredentials());
+  builder.RegisterService(&service);
+  
+  std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
+  server->Wait();
+}
+
 ef_vi* create_ef_vi(std::string vi_name) {  
-  auto path = "/dev/shm/" + vi_name;
+  auto dir = "/dev/shm/" + vi_name;
+  if (0 != access(dir.c_str(), F_OK)) {
+    mkdir(dir.c_str(), 0755);
+  }
+  auto path = "/dev/shm/" + vi_name + "/vi";
+  std::cout << "vi_path:" << path << std::endl;
   int fd = open(path.c_str(), O_RDWR | O_CREAT, 0666);
   if (fd < 0) {
     throw std::runtime_error("can't open or create file");
@@ -26,7 +79,7 @@ ef_vi* create_ef_vi(std::string vi_name) {
 }
 
 void init_packet_buffer(std::string vi_name, std::string pkt_buf_name) {
-  auto path = "/dev/shm/" + vi_name + "_" + pkt_buf_name;
+  auto path = "/dev/shm/" + vi_name + "/" + pkt_buf_name;
   int fd = open(path.c_str(), O_RDWR | O_CREAT, 0666);
   if (fd < 0) {
     throw std::runtime_error("can't open or create file");
@@ -91,21 +144,15 @@ void print_efvi_mac() {
   uint8_t mac[6];
   ef_vi_get_mac(vi, driver_handle, mac);
   printf("INF: mac=");
-  for(int i = 0; i < 6; ++i) {
-    printf("%02x", mac[i]);
-    if (i != 5) {
-      printf(":");
-    }
-  }
+  printf(MAC_FMT, mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   printf("\n");
 }
 
 uint8_t local_mac[] = { 0x00, 0x0f, 0x53, 0x98, 0x0c, 0xf0 }; // test local mac address
-uint8_t remote_mac[] = { 0x00, 0x50, 0x56, 0x9d, 0xa6, 0x85 };
+uint8_t remote_mac[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 int main(int argc, char** argv) {
   int ifindex;
-
   if (argc >= 4) {
     laddr_he = inet_network(argv[2]);
     printf("INF: laddr_he=0x%08x\n", laddr_he);
@@ -113,9 +160,15 @@ int main(int argc, char** argv) {
     printf("INF: raddr_he=0x%08x\n", raddr_he);
     port_he = std::stoi(argv[4]);
     printf("INF: port=%d\n", port_he);
+  } else {
+    std::thread t(start_server, "127.0.0.1:8088");
+    for (;;) {
+      std::this_thread::sleep_for(3600s);
+    }
   }
 
   parse_interface(argv[1], &ifindex);
+  std::cout << "ifindex:" << ifindex << std::endl;
 
   init_efvi_context(ifindex);
 
@@ -125,6 +178,7 @@ int main(int argc, char** argv) {
 
   init_packet_buffer("vi01", "queue");
   std::cout << "INF: create packet_buffers succ" << std::endl;
+  std::cout << "pkt_buf[0]:" << *((char *) pkt_bufs[0]->dma_buf_addr) << std::endl;
 
   init_eth_hdr(pkt_bufs[FIRST_TX_BUF]->dma_buf, local_mac, remote_mac);
 

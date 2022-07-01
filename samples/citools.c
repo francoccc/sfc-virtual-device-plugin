@@ -6,7 +6,7 @@ void* init_eth_hdr(void* pkt_buf, uint8_t shost[ETH_ALEN], uint8_t dhost[ETH_ALE
   eth = (ci_ether_hdr*) pkt_buf;
   memcpy(eth->ether_shost, shost, sizeof(shost));
   memcpy(eth->ether_dhost, dhost, sizeof(dhost));
-  eth->ether_type = htons(0x0800);
+  eth->ether_type = htons(ETH_P_IP);
   return (char*) pkt_buf + sizeof(ci_ether_hdr);
 }
 
