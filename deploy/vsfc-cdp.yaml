@@ -1,0 +1,71 @@
+# apiVersion: extensions/v1beta1
+# kind: DaemonSet
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vsfc-device-plugin
+  namespace: kube-system
+  labels:
+    tier: node
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vsfc-device-plugin
+  template:
+    metadata:
+      labels:
+        tier: node
+        app: vsfc-device-plugin
+    spec:
+      hostNetwork: true
+      nodeSelector:
+        beta.kubernetes.io/arch: amd64
+        kubernetes.io/hostname: node1
+      tolerations:
+      - key: node-role.kubernetes.io/master
+        operator: Exists
+        effect: NoSchedule
+      containers:
+      - name: device-plugin-ctr
+        image: registry.corp.highfortfunds.com/highfort/plugin/vsfc:latest
+        imagePullPolicy: Always
+        command: ["/app/plugin"]
+        resources:
+          limits:
+            memory: 1024Mi
+            cpu: "100m"
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - mountPath: "/root/.ssh/id_rsa"
+            name: ssh-key
+          - name: device-plugin
+            mountPath: /var/lib/kubelet/device-plugins
+          - name: pki
+            mountPath: "/etc/kubernetes/pki"
+          - name: shm
+            mountPath: "/dev/shm"
+          - name: sfc-char
+            mountPath: "/dev/sfc_char"
+          - name: sfc-affinity
+            mountPath: "/dev/sfc_affinity"
+      volumes:
+        - name: ssh-key
+          hostPath:
+            path: "/root/.ssh/id_rsa"
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/kubelet/device-plugins
+        - name: pki
+          hostPath:
+            path: "/etc/kubernetes/pki"
+        - name: shm
+          hostPath:
+            path: "/dev/shm"
+        - name: sfc-char
+          hostPath:
+            path: "/dev/sfc_char"
+        - name: sfc-affinity
+          hostPath:
+            path: "/dev/sfc_affinity"
