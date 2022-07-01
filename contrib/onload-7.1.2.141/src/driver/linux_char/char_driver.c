@@ -200,6 +200,7 @@ ci_char_fop_ioctl(struct file *filp, uint cmd, ulong arg)
   return 0;
 }
 
+ci_private_char_t *p_priv;
 
 /****************************************************************************
  *
