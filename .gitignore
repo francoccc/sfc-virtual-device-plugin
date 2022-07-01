@@ -9,3 +9,6 @@ contrib/linux-headers-common
 *.tgz
 *.zip
 *.txt
+*.bak
+
+contrib/onload*/build
