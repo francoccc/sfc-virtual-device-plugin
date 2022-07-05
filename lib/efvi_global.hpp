@@ -3,9 +3,10 @@
  * @Author: Franco Chen
  * @Date: 2022-05-09 14:34:57
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-07-01 16:20:21
+ * @LastEditTime: 2022-07-04 15:49:03
  */
-#pragma once
+#ifndef __EFVI_GLOBAL_HPP__
+#define __EFVI_GLOBAL_HPP__
 
 
 #include "etherfabric/vi.h"
@@ -58,4 +59,6 @@ enum mode {
 
 #define HEADER_SIZE     (14 + 20 + 8) // for test
 
-struct pkt_buf*          pkt_bufs[N_RX_BUFS + N_TX_BUFS];
+// struct pkt_buf*          pkt_bufs[N_RX_BUFS + N_TX_BUFS];
+
+#endif

@@ -1,64 +1,17 @@
-load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_binary")
 
 package(default_visibility = ["//visibility:public"])
-
-cc_library(
-    name = "efvi_op",
-    srcs = [
-        "efvi_global.hpp",
-        "efvi_rx.hpp",
-        "efvi_tx.hpp",
-    ],
-    hdrs = [
-        "efvi_global.hpp",
-        "efvi_rx.hpp",
-        "efvi_tx.hpp",
-    ],
-    deps = [
-        "@onload//:ciul",
-        "@onload//:zocket",
-    ],
-)
-
-cc_library(
-    name = "citools",
-    srcs = [
-        "citools.c",
-        "citools.h",
-    ],
-    hdrs = [
-        "citools.h",
-    ],
-    copts = [
-        "-Iexternal/onload/src/include",
-    ],
-    deps = [
-        "@onload//:ci_tool",
-    ],
-)
 
 cc_binary(
     name = "efvi_allocator",
     srcs = [
         "efvi_allocator.cpp",
     ],
-    copts = [
-        "-std=c++2a",
-        "-Iexternal/onload/src/include",
-    ],
-    defines = [
-        "ENTRYPOINT",
-    ],
     linkopts = [
         "-lpthread",
     ],
     deps = [
-        ":citools",
-        ":efvi_op",
-        "//proto:efvi_cc_library",
-        "//proto:efvi_grpc_cc_library",
-        "//util",
-        "@com_github_grpc_grpc//:grpc++",
+       "//lib:efvi_allocator",
     ],
 )
 
@@ -67,19 +20,8 @@ cc_binary(
     srcs = [
         "efvi_client.cpp",
     ],
-    copts = [
-        "-Iexternal/onload/src/include",
-    ],
-    defines = [
-        "ENTRYPOINT",
-    ],
-    linkopts = [
-        "-lpthread",
-    ],
     deps = [
-        ":citools",
-        ":efvi_op",
-        "//util",
+        "//include:local_efvi_socket",
     ],
 )
 

@@ -1,0 +1,57 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "citools",
+    srcs = [
+        "citools.c",
+        "citools.h",
+    ],
+    hdrs = [
+        "citools.h",
+    ],
+    deps = [
+        "@onload//:ci_tool",
+    ],
+)
+
+cc_library(
+    name = "efvi_op",
+    srcs = [
+        "efvi_global.hpp",
+        "efvi_rx.hpp",
+        "efvi_tx.hpp",
+    ],
+    hdrs = [
+        "efvi_global.hpp",
+        "efvi_rx.hpp",
+        "efvi_tx.hpp",
+    ],
+    deps = [
+        "@onload//:ciul",
+        "@onload//:zocket",
+    ],
+)
+
+cc_library(
+    name = "efvi_allocator",
+    srcs = [
+        "efvi_allocator.hpp",
+        "efvi_allocator.cpp",
+    ],
+    hdrs = [
+        "efvi_allocator.hpp",
+    ],
+    linkopts = [
+        "-lpthread",
+    ],
+    deps = [
+        ":citools",
+        ":efvi_op",
+        "//util:util",
+        "//proto:efvi_cc_library",
+        "//proto:efvi_grpc_cc_library",
+        "@com_github_grpc_grpc//:grpc++",
+    ]
+)

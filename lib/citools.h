@@ -1,5 +1,3 @@
-
-
 #ifndef __CITOOLS_H__
 #define __CITOOLS_H__
 
