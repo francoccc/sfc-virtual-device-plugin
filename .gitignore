@@ -1,4 +1,4 @@
-bazel*
+bazel-*
 plugin/vendor
 
 .vscode
