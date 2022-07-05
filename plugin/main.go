@@ -3,7 +3,7 @@
  * @Author: Franco Chen
  * @Date: 2022-06-06 17:30:44
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-06-29 15:15:08
+ * @LastEditTime: 2022-07-04 16:11:58
  */
 package main
 
@@ -20,7 +20,7 @@ import (
 
 var (
 	// efviClient efvi.EfviServiceClient
-	addr = flag.String("addr", "localhost:8088", "efvi_allocator local address")
+	allocServiceAddr = flag.String("addr", "localhost:8088", "The address of efvi_allocator")
 	pluginPath = flag.String("plugin-directory", pluginapi.DevicePluginPath, "The directory in which to create plugin socket")
 	resourceName = flag.String("resource-name", "highfortfunds.com/vsfc", "The name of plugin resource")
 )
@@ -33,7 +33,7 @@ func main() {
 	glog.Info("Start")
 	util.ForkProcess("/app/efvi_allocator", []string{})
 	
-	vsfc := deviceplugin.NewVSFCPluginServer(*resourceName, *pluginPath)
+	vsfc := deviceplugin.NewVSFCPluginServer(*resourceName, *pluginPath, *allocServiceAddr)
 	ctx, _ := context.WithCancel(context.Background())
 	vsfc.Run(ctx)
 	os.Exit(1)  // died

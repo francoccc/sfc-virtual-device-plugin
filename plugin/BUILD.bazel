@@ -36,12 +36,6 @@ go_binary(
     visibility = ["//visibility:public"],
 )
 
-container_layer(
-    name = "entrypoint",
-    directory = "/app",
-    files = [":start.sh"],
-)
-
 download_pkgs(
     name = "container_cmds",
     image_tar = "@debian-slim//image",
@@ -73,9 +67,7 @@ container_image(
         ":plugin",
         "//samples:efvi_allocator",
     ],
-    layers = [
-        ":entrypoint",
-    ],
+    layers = [],
     mode = "0o755",
     repository = "highfort",
     stamp = True,

@@ -3,7 +3,7 @@
  * @Author: Franco Chen
  * @Date: 2022-06-27 11:37:55
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-06-28 16:45:08
+ * @LastEditTime: 2022-07-01 17:23:19
  */
 package deviceplugin
 
@@ -25,7 +25,6 @@ import (
 
 const (
 	socketPrefix        = "vsfc"
-	regExpSFC           = "(?m)[\r\n]+^.*SFC[6-9].*$"
 	socketCheckInterval = 1 * time.Second
 	restartInterval     = 5 * time.Second
 	deviceCheckInterval = 5 * time.Second

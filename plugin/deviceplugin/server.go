@@ -20,6 +20,12 @@ import (
 
 const (
 	vNicPerNic = 8
+	
+	regExpSFC           = "(?m)[\r\n]+^.*SFC[6-9].*$"
+	sharedMemory = "/dev/shm/"
+	defaultPermission = "mrw"
+	viAllocNamePrefix = "vi0"
+	viContainerMountPath = "/mnt/vi"
 )
 
 // device wraps the v1.beta1.Device type to add context about
@@ -35,11 +41,13 @@ type MountDevice struct {
 type vSFCPluginServer struct {
 	mu         sync.Mutex
 	devices    map[string]MountDevice
+	allocAddr  string
 }
 
-func NewVSFCPluginServer(resource, pluginDir string) Plugin {
+func NewVSFCPluginServer(resource, pluginDir, allocServiceAddr string) Plugin {
 	server := &vSFCPluginServer {
-		devices: make(map[string]MountDevice),
+		devices:   make(map[string]MountDevice),
+		allocAddr: allocServiceAddr,
 	}
 	return NewVSFCPlugin(resource, pluginDir, server)
 }
@@ -62,22 +70,22 @@ func (vsfc *vSFCPluginServer) discoverSolarflareResources() ([]MountDevice, erro
 				Device: pluginapi.Device {
 					Health: pluginapi.Healthy,
 				},
-				name: "vi0" + fmt.Sprintf("%d", i),
+				name: viAllocNamePrefix + fmt.Sprintf("%d", i),
 				nic: strings.Fields(nic)[1],
 			}
 			d.deviceSpecs = append(d.deviceSpecs, &pluginapi.DeviceSpec {
 				HostPath: "/dev/sfc_char",
 				ContainerPath: "/dev/sfc_char",
-				Permissions: "mrw",
+				Permissions: defaultPermission,
 			})
 			d.deviceSpecs = append(d.deviceSpecs, &pluginapi.DeviceSpec {
 				HostPath: "/dev/sfc_affinity",
 				ContainerPath: "/dev/sfc_affinity",
-				Permissions: "mrw",
+				Permissions: defaultPermission,
 			})
 			d.mounts = append(d.mounts, &pluginapi.Mount {
-				HostPath: "/dev/shm/" + d.name,
-				ContainerPath: "/mnt/vi",
+				HostPath: sharedMemory + d.name,
+				ContainerPath: viContainerMountPath,
 				ReadOnly: false,
 			})
 			d.ID = fmt.Sprintf("%x", h.Sum(nil))
@@ -135,7 +143,7 @@ func (vsfc *vSFCPluginServer) Allocate(_ context.Context, req *pluginapi.Allocat
 	res := &pluginapi.AllocateResponse {
 		ContainerResponses: make([]*pluginapi.ContainerAllocateResponse, 0, len(req.ContainerRequests)),
 	}
-	conn, err := grpc.Dial("localhost:8088", grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(vsfc.allocAddr, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
 		glog.Fatal("dial to allocate server failed: ", err)
 		return nil, fmt.Errorf("requested allocate server is unreachable")
