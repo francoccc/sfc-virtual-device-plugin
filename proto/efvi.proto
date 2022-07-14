@@ -14,6 +14,7 @@ message ViResource {
   int32 code = 1;
   string message = 2;
   string viPath = 3;
+  string queuePath = 4;
 }
 
 service EfviService {
