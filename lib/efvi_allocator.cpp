@@ -1,19 +1,23 @@
 #include "efvi_allocator.hpp"
 #include <exception>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <functional>
 #include <thread>
+#include <sys/shm.h>
 #include "util/util.hpp"
 #include "util/net_util.hpp"
 
 
 using namespace efvi;
 
-VirtualInterface::VirtualInterface(ef_driver_handle driver_handle, ef_pd pd, std::string _vi_name) : vi_name(_vi_name) {
+VirtualInterface::VirtualInterface(ef_driver_handle driver_handle,
+  ef_pd pd, std::string _vi_name) : vi_name(_vi_name) {
   int rc;
   int vi_flags = EF_VI_FLAGS_DEFAULT;
   
-  alloc_shm_resource(vi_name, "vi", sizeof(ef_vi), (void**) &vi);
+  alloc_shm_resource(vi_name, "vi", sizeof(ef_vi), MOUNT_DEFAULT, (void**) &vi);
   if ((rc = ef_vi_alloc_from_pd(vi, driver_handle, 
     &pd, driver_handle, -1, -1, -1, NULL, -1, (enum ef_vi_flags) vi_flags)) < 0) {
     if (rc == -EPERM) {
@@ -26,12 +30,39 @@ VirtualInterface::VirtualInterface(ef_driver_handle driver_handle, ef_pd pd, std
     }
   }
   
-  alloc_shm_resource(vi_name, "queue", N_BUFS * BUF_SIZE, (void**) &queue);
-  
-  if (ef_memreg_alloc(&memreg, driver_handle,
-    &pd, driver_handle, queue, N_BUFS * BUF_SIZE) != 0) {
-    throw std::runtime_error("alloc memreg failed");
+  int nr_hugepages;
+  std::stringstream stream;
+  std::ifstream in("/proc/sys/vm/nr_hugepages");
+  stream << in.rdbuf();
+  stream >> nr_hugepages;
+  if (nr_hugepages > 0) {
+    printf("[efvi_allocator] alloc huge pages\n");
+    // key_t key = ftok("./", 777);
+    // int shmget_id = shmget(key, 1024 * BUF_SIZE, SHM_HUGETLB | IPC_CREAT | 0666);
+    // if (shmget_id == -1) {
+    //   throw std::runtime_error("alloc shmget failed");
+    // }
+    alloc_shm_resource(vi_name, "queue", 1024 * BUF_SIZE, MOUNT_HUGE_PAGE, (void**) &queue);  // use a 2M hugePage
+    use_hugepages = true;
+    // queue = (pkt_buf*) shmat(shmget_id, 0, 0);
+    // struct pkt_buf *pb;
+    // for (int i = 0; i < N_BUFS; ++i) {
+    //   pb = (pkt_buf*) ((unsigned char*) queue + i * BUF_SIZE);
+    //   pb->id = i;
+    // }
+    printf("[efvi_allocator] queue ptr: %p\n", queue);
+    if (ef_memreg_alloc(&memreg, driver_handle,
+      &pd, driver_handle, queue, 1024 * BUF_SIZE) != 0) {
+      throw std::runtime_error("alloc memreg failed rs:" + std::string(strerror(errno)));
+    }
+  } else {
+    alloc_shm_resource(vi_name, "queue", N_BUFS * BUF_SIZE, MOUNT_DEFAULT, (void**) &queue);
+    if (ef_memreg_alloc(&memreg, driver_handle,
+      &pd, driver_handle, queue, N_BUFS * BUF_SIZE) != 0) {
+      throw std::runtime_error("alloc memreg failed rs:" + std::string(strerror(errno)));
+    }
   }
+
   
   struct pkt_buf *pb;
   for (int i = 0; i < N_BUFS; ++i) {
@@ -65,7 +96,7 @@ void EfviAllocContext::put_if_absent(int ifindex) {
   return;
 }
 
-void EfviAllocContext::alloc_virtual_interface(int ifindex, std::string vi_name) {
+std::shared_ptr<VirtualInterface> EfviAllocContext::alloc_virtual_interface(int ifindex, std::string vi_name) {
   if (!opened_handles.count(ifindex)) {
     throw std::runtime_error("unfounded local driver_handle");
   }
@@ -75,6 +106,7 @@ void EfviAllocContext::alloc_virtual_interface(int ifindex, std::string vi_name)
   }
   auto vi = std::make_shared<VirtualInterface>(driver_handle, handle.protection_domain, vi_name);
   handle.vis[vi_name] = vi;
+  return vi;
 }
 
 grpc::Status EfviAllocService::ApplyVirtualDevice(grpc::ServerContext*,
@@ -89,10 +121,14 @@ grpc::Status EfviAllocService::ApplyVirtualDevice(grpc::ServerContext*,
 
   try {
     context.put_if_absent(ifindex);
-    context.alloc_virtual_interface(ifindex, request->name().c_str());
+    auto vi = context.alloc_virtual_interface(ifindex, request->name().c_str());
     response->set_code(0);
-    response->set_vipath("/dev/shm/" + request->name());
+    response->set_vipath("/dev/shm/" + vi->name());
+    if (vi->is_use_hugepages()) {
+      response->set_queuepath("/mnt/hugepages/" + vi->name());
+    }
   } catch (std::runtime_error& e) {
+    std::cout << "[efvi_allocator] inner error: " << e.what() << std::endl;
     return grpc::Status(grpc::StatusCode::INTERNAL, e.what());
   }
   return grpc::Status::OK;
@@ -107,7 +143,7 @@ void EfviAllocator::run(bool async) {
     builder.AddListeningPort(host + ":" + std::to_string(port), grpc::InsecureServerCredentials());
     builder.RegisterService(&service);
 
-    std::unique_ptr<grpc::Server>  server(builder.BuildAndStart());
+    std::unique_ptr<grpc::Server> server(builder.BuildAndStart());
     server->Wait();
   };
   if (async) {

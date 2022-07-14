@@ -3,7 +3,7 @@
  * @Author: Franco Chen
  * @Date: 2022-07-04 13:11:32
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-07-04 15:22:36
+ * @LastEditTime: 2022-07-14 13:45:57
  */
 #pragma once
 
@@ -22,7 +22,16 @@ class VirtualInterface {
 public:
   VirtualInterface(ef_driver_handle driver_handle, ef_pd pd, std::string vi_name);
   ~VirtualInterface();
+  
+  bool is_use_hugepages() {
+    return use_hugepages;
+  }
+  
+  std::string name() {
+    return vi_name;
+  }
 private:
+  bool use_hugepages {false};
   ef_memreg memreg;
   std::string vi_name;
   ef_vi *vi;
@@ -40,7 +49,7 @@ class EfviAllocContext {
 public:
   EfviAllocContext();
   void put_if_absent(int ifindex);
-  void alloc_virtual_interface(int ifindex, std::string vi_name);
+  std::shared_ptr<VirtualInterface> alloc_virtual_interface(int ifindex, std::string vi_name);
 private:
   std::unordered_map<int, efvi_nic_handle> opened_handles;
   int driver_handle;

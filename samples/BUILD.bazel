@@ -20,6 +20,9 @@ cc_binary(
     srcs = [
         "efvi_client.cpp",
     ],
+    linkopts = [
+        "-lpthread",
+    ],
     deps = [
         "//include:local_efvi_socket",
     ],

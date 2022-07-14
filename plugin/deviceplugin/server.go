@@ -21,11 +21,13 @@ import (
 const (
 	vNicPerNic = 8
 	
-	regExpSFC           = "(?m)[\r\n]+^.*SFC[6-9].*$"
+	regExpSFC    = "(?m)[\r\n]+^.*SFC[6-9].*$"
 	sharedMemory = "/dev/shm/"
+	hugepages    = "/mnt/hugepages/"
 	defaultPermission = "mrw"
-	viAllocNamePrefix = "vi0"
+	viAllocNamePrefix = "vi"
 	viContainerMountPath = "/mnt/vi"
+	viHugePageQueueMountPath = "/mnt/vi/huge"
 )
 
 // device wraps the v1.beta1.Device type to add context about
@@ -60,7 +62,7 @@ func (vsfc *vSFCPluginServer) discoverSolarflareResources() ([]MountDevice, erro
 	}
 	re := regexp.MustCompile(regExpSFC)
 	sfcNICs := re.FindAllString(out.String(), -1)
-	for _, nic := range sfcNICs {
+	for index, nic := range sfcNICs {
 		glog.V(2).Info("logical name: ", strings.Fields(nic)[1])
 		for i := 1; i <= vNicPerNic; i++ {
 			h := sha1.New()
@@ -70,7 +72,7 @@ func (vsfc *vSFCPluginServer) discoverSolarflareResources() ([]MountDevice, erro
 				Device: pluginapi.Device {
 					Health: pluginapi.Healthy,
 				},
-				name: viAllocNamePrefix + fmt.Sprintf("%d", i),
+				name: viAllocNamePrefix + fmt.Sprintf("%d%d", index, i),
 				nic: strings.Fields(nic)[1],
 			}
 			d.deviceSpecs = append(d.deviceSpecs, &pluginapi.DeviceSpec {
@@ -175,6 +177,14 @@ func (vsfc *vSFCPluginServer) Allocate(_ context.Context, req *pluginapi.Allocat
 			}
 			resp.Devices = append(resp.Devices, d.deviceSpecs...)
 			resp.Mounts = append(resp.Mounts, d.mounts...)
+			if viResource.QueuePath != "" {
+				glog.Info("using hugepages")
+				resp.Mounts = append(resp.Mounts, &pluginapi.Mount {
+					HostPath: hugepages + d.name,
+					ContainerPath: viHugePageQueueMountPath,
+					ReadOnly: false,
+				})
+			}
 		}
 		res.ContainerResponses = append(res.ContainerResponses, resp)
 	}

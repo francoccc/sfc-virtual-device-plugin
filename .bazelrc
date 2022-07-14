@@ -19,3 +19,6 @@ build --cxxopt=-fpermissive
 build --cxxopt=-Wunused-variable
 
 build --cxxopt=-Iexternal/onload/src/include
+
+
+build --cxxopt=-O3

@@ -3,13 +3,14 @@
  * @Author: Franco Chen
  * @Date: 2022-05-09 14:34:57
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-07-04 15:49:03
+ * @LastEditTime: 2022-07-07 17:47:42
  */
 #ifndef __EFVI_GLOBAL_HPP__
 #define __EFVI_GLOBAL_HPP__
 
 
 #include "etherfabric/vi.h"
+#include "etherfabric/internal/internal.h"
 #include "etherfabric/pd.h"
 #include "etherfabric/pio.h"
 #include "etherfabric/memreg.h"
@@ -33,6 +34,8 @@ static unsigned long deal_index;
 static uint32_t laddr_he = 0xac108564;  /* 172.16.133.100 */
 static uint32_t raddr_he = 0xac010203;  /* 172.1.2.3 */
 static uint32_t port_he = 8080;
+static uint32_t lport_he = 8080;
+static uint32_t rport_he = 8080;
 
 static int tx_frame_len;
 
@@ -51,7 +54,7 @@ enum mode {
   MODE_DEFAULT = MODE_CTPIO | MODE_ALT | MODE_PIO | MODE_DMA
 };
 
-#define N_RX_BUFS	256u
+#define N_RX_BUFS	255u
 #define N_TX_BUFS	1u
 #define N_BUFS          (N_RX_BUFS + N_TX_BUFS)
 #define FIRST_TX_BUF    N_RX_BUFS

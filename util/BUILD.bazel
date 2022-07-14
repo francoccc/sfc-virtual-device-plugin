@@ -4,6 +4,7 @@ package(default_visibility = ["//visibility:public"])
 
 cc_library(
     name = "util",
+    srcs = glob(["*.hpp", "*.cpp"]),    
     hdrs = [
         "net_util.hpp",
         "tcpip.hpp",
