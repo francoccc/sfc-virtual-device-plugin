@@ -50,6 +50,8 @@ MODULE_PARM_DESC(phys_mode_gid,
 MODULE_AUTHOR("Solarflare Communications");
 MODULE_LICENSE("GPL");
 
+ci_private_char_t *p_priv;
+
 
 
 
@@ -207,19 +209,11 @@ ci_char_fop_ioctl(struct file *filp, uint cmd, ulong arg)
 static int
 ci_char_fop_open(struct inode *inode, struct file *filp)
 {
-  ci_private_char_t *priv;
+  ci_private_char_t *priv = p_priv;
 
   EFCH_TRACE("%s:", __FUNCTION__);
-
-  if ((priv = CI_ALLOC_OBJ(ci_private_char_t)) == NULL)
-    return -ENOMEM;
-  CI_ZERO(priv);
-  /* priv->cpcp_vi = NULL; */
-  init_waitqueue_head(&priv->cpcp_poll_queue);
-  ci_resource_table_ctor(&priv->rt,
-            ci_is_sysadmin() ? CI_CAP_BAR | CI_CAP_PHYS | CI_CAP_DRV : 0);
   filp->private_data = (void*) priv;
-  return 0; 
+  return 0;
 }
 
 /****************************************************************************
@@ -230,14 +224,7 @@ ci_char_fop_open(struct inode *inode, struct file *filp)
 static int
 ci_char_fop_close(struct inode *inode, struct file *filp) 
 {  
-  ci_private_char_t *priv = (ci_private_char_t *) filp->private_data;
-
   EFCH_TRACE("%s:", __FUNCTION__);
-
-  /* cleanup private state */
-  filp->private_data = 0;
-  ci_resource_table_dtor(&priv->rt);
-  ci_free(priv);
 
   return 0;  
 } 
@@ -277,9 +264,19 @@ static struct ci_chrdev_registration* sfc_char_chrdev;
 static int init_etherfabric_char(void)
 {
   ci_set_log_prefix("[sfc_char] ");
+  EFCH_NOTICE(" %s: local sfc_char init", __FUNCTION__);
 
+  if ((p_priv = CI_ALLOC_OBJ(ci_private_char_t)) == NULL) {
+    return -ENOMEM;
+  }
+
+  CI_ZERO(p_priv);
+  /* priv->cpcp_vi = NULL; */
+  init_waitqueue_head(&p_priv->cpcp_poll_queue);
+  ci_resource_table_ctor(&p_priv->rt,
+    ci_is_sysadmin() ? CI_CAP_BAR | CI_CAP_PHYS | CI_CAP_DRV : 0);
   return create_one_chrdev_and_mknod(0, EFAB_CHAR_NAME, &ci_char_fops,
-                                     &sfc_char_chrdev);
+    &sfc_char_chrdev);
 }
 
 /**************************************************************************** 
@@ -290,6 +287,11 @@ static int init_etherfabric_char(void)
 static void 
 cleanup_etherfabric_char(void) 
 { 
+  /* cleanup private state */
+  EFCH_NOTICE(" %s: local sfc_char exit", __FUNCTION__);
+  ci_resource_table_dtor(&p_priv->rt);
+  ci_free(p_priv);
+  
   destroy_chrdev_and_mknod(sfc_char_chrdev);
 }
 
