@@ -1,0 +1,211 @@
+Onload-7.1.2
+============
+
+ This is an update release of Onload that extends support to recent operating
+ system updates and fixes various bugs.
+
+ See the accompanying ChangeLog for a list of bugs fixed.
+
+Linux distribution support
+--------------------------
+
+ This package is supported on:
+ - Red Hat Enterprise Linux 6.9 - 6.10
+ - Red Hat Enterprise Linux 7.6 - 7.9
+ - Red Hat Enterprise Linux 8.1 - 8.4
+ - SuSE Linux Enterprise Server 12 sp4 and sp5
+ - SuSE Linux Enterprise Server 15 sp1 and sp2
+ - Canonical Ubuntu Server LTS 18.04 and 20.04
+ - Debian 9 "Stretch"
+ - Debian 10 "Buster"
+ - Linux kernels 4.4 - 5.12
+
+
+XDP/eBPF filtering
+------------------
+
+ * This release fixes unnecessary high latency when XDP is enabled.
+
+ * To support BPF filtering for recent kernels, it was necessary to give the
+   control plan server the CAP_SYS_ADMIN capability. This is now disabled by
+   default so the "cplane_track_xdp" module option must be provided, e.g. via
+   the modprobe configuration.
+
+
+New ef_vi event EF_EVENT_TYPE_RESET
+-----------------------------------
+
+A new event, EF_EVENT_TYPE_RESET is issued by ef_vi to notify applications of
+fatal hardware restarts.
+
+
+Deprecation
+-----------
+
+Support for accelerating 32-bit applications will be removed in the next
+major feature release of Onload but 32-bit applications continue to be
+supported by Onload-7.1.x bugfix releases.
+
+
+Onload-7.1.1
+============
+
+ This is an update release of Onload that extends support to recent operating
+ system updates, includes a new sfc net driver and fixes various bugs.
+
+ See the accompanying ChangeLog for a list of bugs fixed.
+
+Linux distribution support
+--------------------------
+
+ This package is supported on:
+ - Red Hat Enterprise Linux 6.9 - 6.10
+ - Red Hat Enterprise Linux 7.6 - 7.9
+ - Red Hat Enterprise Linux 8.1 - 8.3
+ - SuSE Linux Enterprise Server 12 sp4 and sp5
+ - SuSE Linux Enterprise Server 15 sp1 and sp2
+ - Canonical Ubuntu Server LTS 18.04 and 20.04
+ - Debian 9 "Stretch"
+ - Debian 10 "Buster"
+ - Linux kernels 4.4 - 5.9
+
+
+setuid/setgid
+-------------
+
+The onload binaries were previously installed as setuid/setgid by default.
+This is no longer the case. The previous behaviour can be selected by
+passing the --setuid flag to onload_install.
+
+
+EF_TCP_COMBINE_SENDS_MODE
+-------------------------
+
+A new option controls how Onload fills packets in the TCP send buffer. In the
+default mode (set to 0) Onload will prefer to use all the space at the end of
+a previous packet before allocating a new one. When set to 1, Onload will
+prefer to allocate a new packet for each new send.
+
+In all cases this is a hint rather than guaranteed behaviour: there are
+conditions where the preference indicated by this option will not be possible,
+e.g. memory pressure may cause packets in the send queue to be combined.
+MSG_MORE and TCP_CORK can override this option when set. The zero-copy sends
+API may also use the segmentation provided by the caller's buffers.
+
+For full control of message segmentation the delegated sends API can be used.
+Setting this option can affect the capacity of send buffers belonging to
+sockets in this stack and increase packet buffer usage. It can also reduce
+efficiency as packets will be allocated for each send call rather than being
+able to reuse one that is already available.
+
+N.B. Setting this option is only recommended for those who have an explicit
+need to avoid combined or split sends.
+
+
+Onload-7.1.0.265
+================
+
+ This is a feature release of Onload that adds system-level interface
+ blacklisting, provides improvements for XDP and TCPDirect, includes various
+ bug fixes and refreshes the sfc net driver included in the package.
+
+ This release is the successor to Onload-7.0.0.176.
+
+ See the accompanying ChangeLog for a list of bugs fixed.
+
+Linux distribution support
+--------------------------
+
+ This package is supported on:
+ - Red Hat Enterprise Linux 6.8 - 6.10
+ - Red Hat Enterprise Linux 7.5 - 7.8
+ - Red Hat Enterprise Linux 8.0 - 8.2
+ - SuSE Linux Enterprise Server 12 sp4 and sp5
+ - SuSE Linux Enterprise Server 15 and sp1
+ - Canonical Ubuntu Server LTS 16.04, 18.04 and 20.04
+ - Debian 9 "Stretch"
+ - Debian 10 "Buster"
+ - Linux kernels 3.10 - 5.5
+
+
+System-level interface blacklisting
+-----------------------------------
+
+In addition to the per-stack EF_INTERFACE_BLACKLIST and EF_INTERFACE_WHITELIST
+in OpenOnload-201710, a system-level configuration has been added. Files
+in /proc/driver/sfc_resource/<intf-name>/enable may be written with "1" or
+"0" to enable or disable a network interface for all applications on the
+system. Onloaded applications will not accelerate sockets using a disabled
+interface (the socket will be handled by the kernel). ef_vi applications will
+fail the ef_pd_alloc call at startup. By default, all interfaces are enabled
+when the driver is loaded; to disable all interfaces initially pass the
+"enable_accel_by_default=0" module parameter to sfc_resource.
+
+
+Onload Remote Monitor enhancement
+---------------------------------
+
+The Onload Remote Monitor has been enhanced to add a new orm_json_lib library,
+which can be used by customers to build their own custom monitoring solutions.
+
+The existing orm_webserver and orm_json functionality has been retained
+(internally this now uses the orm_json_lib library).
+
+A simple example of how to use orm_json_lib is provided in
+src/tools/onload_remote_monitor/orm_zmq_publisher.c
+This will publish the chosen statistics via a ZeroMQ publisher every N seconds.
+A companion example src/tools/onload_remote_monitor/zmq_subscriber.c can be
+used to receive the JSON statistics via ZeroMQ.
+
+
+eBPF/XDP
+--------
+
+The implementation of XDP features is now delegated to the currently-running
+kernel. This expands the set of supported XDP features to those provided by
+the kernel but means that XDP is no longer supported on older OSs that do not
+provide the corresponding features natively.
+
+On Onload-7.0.0.176, XDP was implemented using a snapshot of the Linux 4.20
+implementation.
+
+
+Acceleration of traffic using addresses not configured on SFC NICs
+------------------------------------------------------------------
+
+A new module parameter, cplane_use_prefsrc_as_local, allows Onload to
+accelerate outgoing traffic over Solarflare interfaces where the route
+selects a preferred source IP address that is not configured on that
+interface.
+
+This parameter is in addition to the more general oof_use_all_ports module
+Parameter.
+
+
+New configuration options
+-------------------------
+
+ - EF_XDP_MODE
+
+   Configure whether XDP programs are run on packets received by Onload.
+   The default is 'disabled'. 'compatible' causes Onload to use XDP programs
+   attached to Solarflare devices and implicitly enables in-kernel polling.
+
+
+Modified configuration options
+------------------------------
+
+ - EF_UDP_CONNECT_HANDOVER
+
+   In addition to the previously-accepted values, this option now also accepts
+   a value of 2, which will cause all UDP sockets to be handed over when
+   calling connect(), regardless of whether the socket could have been
+   accelerated.
+
+
+Deprecation
+-----------
+
+The ability to insert filters to steer kernel traffic using sfcaffinity
+remains deprecated and will be removed in a future release. Instead ethtool
+should be used for this purpose.

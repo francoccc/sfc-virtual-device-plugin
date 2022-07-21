@@ -1,0 +1,24 @@
+
+The software in this package is Copyright 2002-2021 Xilinx, Inc.
+All rights reserved.
+
+Except as noted otherwise below, OpenOnload and EnterpriseOnload are
+licensed under the GNU General Public License version 2 (GPLv2) and
+subject to the software license agreement shown in LICENSES-ALL.
+
+  Note that applications that use the Onload library via the LD_PRELOAD
+  linkage mechanism are not subject to the terms of the GPL because they
+  are not derived works of Onload.
+
+The Onload Extensions Stub Library is licensed under the BSD 2-Clause
+Licence.
+
+The Etherfabric API and library (ef_vi) are licensed under the GNU
+Lesser General Public License version 2.1.
+
+This package includes software derived from lwIP.  Please see
+LICENSES-ALL.
+
+The TCP Direct API and library and other binary objects are licensed as
+described in LICENSES-ALL.
+
