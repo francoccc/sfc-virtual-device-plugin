@@ -86,6 +86,9 @@ extern int ef_vi_alloc_from_pd(ef_vi* vi, ef_driver_handle vi_dh,
                                ef_vi* evq_opt, ef_driver_handle evq_dh,
                                enum ef_vi_flags flags);
 
+/*! \brief Assign ef10 ops to vi
+*/
+extern void ef10_vi_init(ef_vi* vi);
 
 /*! \brief Free a virtual interface
 **
