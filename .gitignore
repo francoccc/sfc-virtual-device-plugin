@@ -1,5 +1,7 @@
 bazel-*
 plugin/vendor
+!plugin/vendor/k8s.io/
+!plugin/vendor/modules.txt
 
 .vscode
 
