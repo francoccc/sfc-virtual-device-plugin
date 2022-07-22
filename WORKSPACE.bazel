@@ -4,17 +4,12 @@ load("//:deps.bzl", "external_build")
 
 external_build("sfc-virtual-device-plugin")
 
-# grpc rules
-load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps", "grpc_test_only_deps")
+# rules_proto(v2) declarations (part I)
+register_toolchains("@build_stack_rules_proto//toolchain:standard")
 
-grpc_deps()
+load("@build_stack_rules_proto//deps:core_deps.bzl", "core_deps")
 
-grpc_test_only_deps()
-
-# load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
-load("//:grpc.bzl", grpc_extra_deps = "_grpc_extra_deps")
-
-grpc_extra_deps()
+core_deps()
 
 # io_bazel_rules_go define rules for build go binary
 load("@io_bazel_rules_go//go:deps.bzl", "go_register_toolchains", "go_rules_dependencies")
@@ -28,14 +23,21 @@ load("@bazel_gazelle//:deps.bzl", "gazelle_dependencies", "go_repository")
 
 gazelle_dependencies(go_repository_default_config = "//:WORKSPACE.bazel")
 
-#gazelle:repository_macro deps.bzl%go_repositories
+go_repository(
+    # I need import org_golang_google_grpc in this place, idk why
+    name = "org_golang_google_grpc",
+    build_file_proto_mode = "disable",
+    importpath = "google.golang.org/grpc",
+    sum = "h1:AGJ0Ih4mHjSeibYkFGh1dD9KJ/eOtZ93I6hoHhukQ5Q=",
+    version = "v1.40.0",
+)
+
+# gazelle:repository_macro deps.bzl%go_repositories
+# gazelle:repo bazel_gazelle
 load("//:go_deps.bzl", "go_repositories")
 
 # gazelle:repository_macro go_deps.bzl%go_repositories
 go_repositories()
-
-# rules_proto(v2) declarations
-register_toolchains("@build_stack_rules_proto//toolchain:standard")
 
 load("@build_stack_rules_proto//:go_deps.bzl", "gazelle_protobuf_extension_go_deps")
 
@@ -45,16 +47,23 @@ load("@build_stack_rules_proto//deps:protobuf_core_deps.bzl", "protobuf_core_dep
 
 protobuf_core_deps()  # this brings @com_google_protobuf
 
-# load("@build_stack_rules_proto//deps:go_core_deps.bzl", "go_core_deps")
-# go_core_deps()   # this bring org_golang_google_grpc org_golang_google_grpc_cmd_protoc_gen_go_grpc
-go_repository(
-    name = "org_golang_google_grpc_cmd_protoc_gen_go_grpc",
-    build_file_proto_mode = "disable_global",
-    importpath = "google.golang.org/grpc/cmd/protoc-gen-go-grpc",
-    sum = "h1:M1YKkFIboKNieVO5DLUEVzQfGwJD30Nv2jfUgzb5UcE=",
-    version = "v1.1.0",
-)
+load("@build_stack_rules_proto//deps:go_core_deps.bzl", "go_core_deps")
 
+go_core_deps()  # this bring org_golang_google_grpc org_golang_google_grpc_cmd_protoc_gen_go_grpc
+
+# grpc rules (part II)
+load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps", "grpc_test_only_deps")
+
+grpc_deps()
+
+grpc_test_only_deps()
+
+# load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
+load("//:grpc.bzl", grpc_extra_deps = "_grpc_extra_deps")
+
+grpc_extra_deps()
+
+# docker rules (part III)
 load(
     "@io_bazel_rules_docker//repositories:repositories.bzl",
     container_repositories = "repositories",
@@ -78,12 +87,12 @@ load(
     "container_pull",
 )
 
-container_pull(
-    name = "go_alpine",
-    registry = "index.docker.io",
-    repository = "golang",
-    tag = "alpine3.6",
-)
+# container_pull(
+#     name = "go_alpine",
+#     registry = "index.docker.io",
+#     repository = "golang",
+#     tag = "alpine3.6",
+# )
 
 container_pull(
     name = "debian-slim",

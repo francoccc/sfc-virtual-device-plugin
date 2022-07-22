@@ -1,4 +1,3 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
 load("@bazel_gazelle//:def.bzl", "gazelle", "gazelle_binary")
 
 genrule(
@@ -22,17 +21,4 @@ gazelle(
         "-proto_configs=gazelle_config.yaml",
     ],
     gazelle = ":gazelle-protobuf",
-)
-
-go_library(
-    name = "lib",
-    srcs = ["test.go"],
-    importpath = "",
-    visibility = ["//visibility:private"],
-)
-
-go_binary(
-    name = "sfc-virtual-device-plugin",
-    embed = [":lib"],
-    visibility = ["//visibility:public"],
 )

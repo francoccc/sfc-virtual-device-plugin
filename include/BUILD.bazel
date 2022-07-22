@@ -3,17 +3,17 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
-  name = "local_efvi_socket",
-  srcs = [
-    "local_efvi_socket.cpp",
-    "local_efvi_socket.hpp",
-  ],
-  hdrs = [
-    "local_efvi_socket.hpp",
-  ],
-  deps = [
-    "//lib:efvi_op",
-    "//lib:citools",
-    "//util:util",
-  ],
+    name = "local_efvi_socket",
+    srcs = [
+        "local_efvi_socket.cpp",
+        "local_efvi_socket.hpp",
+    ],
+    hdrs = [
+        "local_efvi_socket.hpp",
+    ],
+    deps = [
+        "//lib:citools",
+        "//lib:efvi_op",
+        "//util",
+    ],
 )

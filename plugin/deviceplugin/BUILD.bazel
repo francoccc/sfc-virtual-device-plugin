@@ -9,11 +9,11 @@ go_library(
     importpath = "plugin/deviceplugin",
     visibility = ["//visibility:public"],
     deps = [
-        "//plugin/efvi",
         "//plugin/util",
-        "//plugin/vendor/github.com/golang/glog",
-        "//plugin/vendor/github.com/oklog/run",
-        "//plugin/vendor/google.golang.org/grpc",
         "//plugin/vendor/k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1",
+        "//proto:efvi",
+        "@com_github_golang_glog//:glog",
+        "@com_github_oklog_run//:run",
+        "@org_golang_google_grpc//:go_default_library",
     ],
 )

@@ -11,7 +11,7 @@ cc_binary(
         "-lpthread",
     ],
     deps = [
-       "//lib:efvi_allocator",
+        "//lib:efvi_allocator",
     ],
 )
 
@@ -25,20 +25,6 @@ cc_binary(
     ],
     deps = [
         "//include:local_efvi_socket",
-    ],
-)
-
-cc_binary(
-    name = "samples",
-    srcs = [
-        "samples.c",
-    ],
-    copts = [
-        "-Iexternal/onload/src/include",
-    ],
-    deps = [
-        "@onload//:ci_tool",
-        "@onload//:ciul",
     ],
 )
 
