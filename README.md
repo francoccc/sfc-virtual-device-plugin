@@ -3,7 +3,7 @@
  * @Author: Franco Chen
  * @Date: 2022-07-21 17:29:21
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-07-22 16:18:09
+ * @LastEditTime: 2022-07-22 16:30:27
 -->
 # sfc-virtual-device-plugin
 
@@ -26,6 +26,14 @@ The device plugin supports the HugePageTLB mode that is more efficient than trad
     mount -a
   ```
 Please make sure that you have already installed the solarflare nic driver.
+
+The device plugin is supported by v1beta-k8s-deviceplugin that is a local vendor with go mod for some reasons. The version of it is v0.19.7, you can also change it by using a script.
+  ```
+  cd plugin && ./download_deps.sh vx.xx.x
+  go mod tidy
+  go mod vendor         # but only retain plugin/vendor/k8s.io
+  bazel run //:gazelle  # in the project root path
+  ```
 
 ## Setup:
 For applying this plugin, make sure you are under similar environment and the first step is to build a local network driver of solarflare(sfc_char).
