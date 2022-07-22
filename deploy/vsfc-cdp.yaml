@@ -1,14 +1,11 @@
-# apiVersion: extensions/v1beta1
-# kind: DaemonSet
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: vsfc-device-plugin
   namespace: kube-system
   labels:
     tier: node
 spec:
-  replicas: 1
   selector:
     matchLabels:
       app: vsfc-device-plugin
@@ -18,10 +15,10 @@ spec:
         tier: node
         app: vsfc-device-plugin
     spec:
+      hostIPC: true
       hostNetwork: true
       nodeSelector:
         beta.kubernetes.io/arch: amd64
-        kubernetes.io/hostname: node1
       tolerations:
       - key: node-role.kubernetes.io/master
         operator: Exists
@@ -35,6 +32,7 @@ spec:
           limits:
             memory: 1024Mi
             cpu: "100m"
+            hugepages-2Mi: "100Mi"
         securityContext:
           privileged: true
         volumeMounts:
@@ -46,6 +44,8 @@ spec:
             mountPath: "/etc/kubernetes/pki"
           - name: shm
             mountPath: "/dev/shm"
+          - name: hugepages
+            mountPath: "/mnt/hugepages"
           - name: sfc-char
             mountPath: "/dev/sfc_char"
           - name: sfc-affinity
@@ -63,6 +63,9 @@ spec:
         - name: shm
           hostPath:
             path: "/dev/shm"
+        - name: hugepages
+          hostPath:
+            path: "/mnt/hugepages"
         - name: sfc-char
           hostPath:
             path: "/dev/sfc_char"
