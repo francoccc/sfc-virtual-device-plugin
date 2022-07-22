@@ -59,7 +59,7 @@ grpc_deps()
 grpc_test_only_deps()
 
 # load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
-load("//:grpc.bzl", grpc_extra_deps = "_grpc_extra_deps")
+load("//:grpc.bzl", grpc_extra_deps = "inner_grpc_extra_deps")
 
 grpc_extra_deps()
 
