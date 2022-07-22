@@ -3,12 +3,12 @@
  * @Author: Franco Chen
  * @Date: 2022-07-21 17:29:21
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-07-22 10:43:01
+ * @LastEditTime: 2022-07-22 16:18:09
 -->
 # sfc-virtual-device-plugin
 
 ## Introduction:
-The virtual SFC device plugin is a DaemonSet of the Kubernetes Cluster.Provide a TX/RX-like queue for every pod so that client can use DMA send or receive under less memory copy consumption.Bazel supports the whole project for easy compiling, using, and deploying.
+The virtual SFC device plugin is a DaemonSet of the Kubernetes Cluster. Provide a TX/RX-like queue for every pod so that client can use DMA send or receive under less memory copy consumption. Bazel supports the whole project for easy compiling, using, and deploying.
 
 ## Environment:
 1. gcc9 (or later)
@@ -16,8 +16,19 @@ The virtual SFC device plugin is a DaemonSet of the Kubernetes Cluster.Provide a
 3. Linux_x86_64
 4. bazel (4.0.0)
 
+## Prepare:
+The device plugin supports the HugePageTLB mode that is more efficient than tradional memory visiting by hugetblfs, so we can permit the local host providing hugepages.
+  ```
+    echo "vm.nr_hugepages = 1024" >> /etc/sysctl.conf
+    sysctl -p
+    cat /proc/meminfo |grep -i hugepage   # you can see then hugepage status
+    echo "hugetlbfs   /mnt/hugepages    gid=0,uid=0   0   0" >> /etc/fstab 
+    mount -a
+  ```
+Please make sure that you have already installed the solarflare nic driver.
+
 ## Setup:
-For applying this plugin, make sure you are under similar enviroment and the first step is to build a local network driver of solarflare(sfc_char).
+For applying this plugin, make sure you are under similar environment and the first step is to build a local network driver of solarflare(sfc_char).
   ```
     contrib/onload/scripts/onload_build --kernel
   ```
@@ -52,4 +63,8 @@ Finally, apply the Daemonset and alloc a new vsfc-nic resource in pod yaml.
         resources:
           limits:
             highfortfunds.com/vsfc: 1
+  ```
+If you want to build whole project, please use
+  ```
+  bazel build //...
   ```
