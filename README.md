@@ -76,3 +76,5 @@ If you want to build whole project, please use
   ```
   bazel build //...
   ```
+## Issues:
+  The project is personal, specific and ...(May be it have some mistakes). If you have some problems, please contact to me by mail (frcc.fncme@gmail.com) and I will be glad to talk with you.
