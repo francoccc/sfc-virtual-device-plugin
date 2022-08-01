@@ -3,7 +3,7 @@
  * @Author: Franco Chen
  * @Date: 2022-07-04 13:11:32
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-07-14 13:45:57
+ * @LastEditTime: 2022-07-25 10:29:50
  */
 #pragma once
 
@@ -20,7 +20,7 @@ namespace efvi {
 
 class VirtualInterface {
 public:
-  VirtualInterface(ef_driver_handle driver_handle, ef_pd pd, std::string vi_name);
+  VirtualInterface(ef_driver_handle driver_handle, ef_pd pd, std::string vi_name, int ifindex);
   ~VirtualInterface();
   
   bool is_use_hugepages() {

@@ -31,6 +31,7 @@ udp_pkt init_udp_pkt(void* pkt_buf, const void* data, int paylen,
   pkt.io.iov_len = paylen;
 
   memcpy(pkt.io.iov_base, data, paylen);
+  
   return pkt;
 }
 

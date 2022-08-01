@@ -13,9 +13,15 @@
 using namespace efvi;
 
 VirtualInterface::VirtualInterface(ef_driver_handle driver_handle,
-  ef_pd pd, std::string _vi_name) : vi_name(_vi_name) {
+  ef_pd pd, std::string _vi_name, int ifindex) : vi_name(_vi_name) {
   int rc;
   int vi_flags = EF_VI_FLAGS_DEFAULT;
+  unsigned long capability_val;
+  
+  if (ef_vi_capabilities_get(driver_handle, ifindex, EF_VI_CAP_CTPIO, 
+    &capability_val) == 0 && capability_val) {
+    vi_flags |= EF_VI_TX_CTPIO;
+  }
   
   alloc_shm_resource(vi_name, "vi", sizeof(ef_vi), MOUNT_DEFAULT, (void**) &vi);
   if ((rc = ef_vi_alloc_from_pd(vi, driver_handle, 
@@ -104,7 +110,7 @@ std::shared_ptr<VirtualInterface> EfviAllocContext::alloc_virtual_interface(int 
   if (handle.vis.count(vi_name)) {
     return;
   }
-  auto vi = std::make_shared<VirtualInterface>(driver_handle, handle.protection_domain, vi_name);
+  auto vi = std::make_shared<VirtualInterface>(driver_handle, handle.protection_domain, vi_name, ifindex);
   handle.vis[vi_name] = vi;
   return vi;
 }

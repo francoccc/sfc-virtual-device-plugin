@@ -3,7 +3,7 @@
  * @Author: Franco Chen
  * @Date: 2022-07-04 16:58:16
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-07-14 15:37:25
+ * @LastEditTime: 2022-08-01 13:25:59
  */
 #pragma once
 
@@ -13,6 +13,9 @@
 
 namespace efvi {
 
+class MODE {};
+class CTPIO_MODE : public MODE {};
+
 class VEfviSocket {
 public:
   VEfviSocket(std::string local_addr, uint16_t local_port,
@@ -21,16 +24,25 @@ public:
   virtual ~VEfviSocket();
   bool connect();
   bool close();
-  int32_t send(const char *buff, int32_t buff_len);
+  
+  int32_t VEfviSocket::send(const char *buff, int32_t buff_len);
+  
   void loop_recv(std::function<void(char *buff, int32_t buff_len)> message_handler,
-                 std::function<void(unsigned long, unsigned long)> error_handler = NULL,
+                 std::function<bool(uint32_t& recv_index, uint32_t event_rq_index)> error_handler = NULL,
                  std::function<bool()> end = []() -> bool { return true; });
 
+  int post_buf();
+  void wait_event();
+  const char *fetch_message(); // after wait_event;
 private:
   void remap_kernel_mem();
   void remap_vi();
-  void start_recv();
   bool del_efvi_filter();
+  
+  template<typename _MODE>
+  int32_t compound_send(const char *buff, int32_t buff_len, _MODE _) {
+    return -1;
+  }
 
 private:
   uint16_t local_port, remote_port;
@@ -43,6 +55,12 @@ private:
   void *p_queue {0};
   void *p_filter_cookie {0};
   int driver_handle;      // driver: sfc_char
+  
+  std::function<int32_t(const char *, int32_t)> _sender;
+  
+  uint32_t post_index;
+  uint32_t recv_index {0};
+  uint32_t posted;
 };
 
 } // namespace efvi

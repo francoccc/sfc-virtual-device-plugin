@@ -2,7 +2,7 @@
 #include "efvi_global.hpp"
 #include "util/util.hpp"
 
-static inline void dma_recv(ef_vi* vi, struct pkt_buf* pb) {
+static inline void dma_post(ef_vi* vi, struct pkt_buf* pb) {
   TRY(ef_vi_receive_post(vi, pb->dma_buf_addr, pb->id));
 }
 
@@ -19,7 +19,6 @@ static inline void rx_wait(ef_vi* vi) {
     for (; i < n_ev; ++i)
       switch (EF_EVENT_TYPE(evs[i])) {
       case EF_EVENT_TYPE_RX:
-        std::cout << "receive msg" << std::endl;
         ++i;
         return;
       case EF_EVENT_TYPE_TX:
