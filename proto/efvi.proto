@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/francoccc/sfc-virtual-device-plugin/efvi";
+option go_package = "sfc-virtual-device-plugin/efvi";
 package efvi;
 
 message ApplyRequest {
@@ -19,4 +19,4 @@ message ViResource {
 
 service EfviService {
   rpc ApplyVirtualDevice(ApplyRequest) returns (ViResource) {}
-}
+} 

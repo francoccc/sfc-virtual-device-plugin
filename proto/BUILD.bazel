@@ -50,8 +50,8 @@ proto_compile(
 proto_compile(
     name = "efvi_go_compile",
     output_mappings = [
-        "efvi.pb.go=github.com/francoccc/sfc-virtual-device-plugin/efvi/efvi.pb.go",
-        "efvi_grpc.pb.go=github.com/francoccc/sfc-virtual-device-plugin/efvi/efvi_grpc.pb.go",
+        "efvi.pb.go=sfc-virtual-device-plugin/efvi/efvi.pb.go",
+        "efvi_grpc.pb.go=sfc-virtual-device-plugin/efvi/efvi_grpc.pb.go",
     ],
     outputs = [
         "efvi.pb.go",
@@ -71,7 +71,7 @@ proto_go_library(
         "efvi.pb.go",
         "efvi_grpc.pb.go",
     ],
-    importpath = "github.com/francoccc/sfc-virtual-device-plugin/efvi",
+    importpath = "sfc-virtual-device-plugin/efvi",
     visibility = ["//visibility:public"],
     deps = [
         "@org_golang_google_grpc//:go_default_library",
@@ -85,6 +85,6 @@ proto_go_library(
 go_library(
     name = "efvi",
     embed = [":efvi_go_proto"],
-    importpath = "github.com/francoccc/sfc-virtual-device-plugin/efvi",
+    importpath = "sfc-virtual-device-plugin/efvi",
     visibility = ["//visibility:public"],
 )

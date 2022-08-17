@@ -3,7 +3,7 @@
  * @Author: Franco Chen
  * @Date: 2022-07-21 17:29:21
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-07-22 16:30:27
+ * @LastEditTime: 2022-08-01 14:02:37
 -->
 # sfc-virtual-device-plugin
 
@@ -76,5 +76,8 @@ If you want to build whole project, please use
   ```
   bazel build //...
   ```
+
+## For client:
+  If you want to use in the container let your CPP project include the ```cc_library``` that was packeted and exported in Bazel. You can import ```@sfc-virtual-device-plugin//include:local_efvi_socket``` and compile in your own project. Also you can customize your own client library for different languages.
 ## Issues:
   The project is personal, specific and ...(May be it have some mistakes). If you have some problems, please contact to me by mail (frcc.fncme@gmail.com) and I will be glad to talk with you.
