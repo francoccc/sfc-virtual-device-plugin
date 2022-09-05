@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "cni_lib",
+    srcs = ["solarflare_macvlan.go"],
+    importpath = "sfc-virtual-device-plugin/cni",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//plugin/util",
+        "@com_github_containernetworking_cni//pkg/skel",
+        "@com_github_containernetworking_cni//pkg/types",
+        "@com_github_containernetworking_cni//pkg/types/100",
+        "@com_github_containernetworking_cni//pkg/version",
+        "@com_github_containernetworking_plugins//pkg/ip",
+        "@com_github_containernetworking_plugins//pkg/ipam",
+        "@com_github_containernetworking_plugins//pkg/ns",
+        "@com_github_containernetworking_plugins//pkg/utils/buildversion",
+        "@com_github_containernetworking_plugins//pkg/utils/sysctl",
+        "@com_github_vishvananda_netlink//:netlink",
+    ],
+)
+
+go_test(
+    name = "cni_test",
+    srcs = ["solarflare_macvlan_test.go"],
+    embed = [":cni_lib"],
+)
+
+go_binary(
+    name = "cni",
+    embed = [":cni_lib"],
+    visibility = ["//visibility:public"],
+)
