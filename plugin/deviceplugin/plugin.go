@@ -3,17 +3,17 @@
  * @Author: Franco Chen
  * @Date: 2022-06-27 11:37:55
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-07-01 17:23:19
+ * @LastEditTime: 2022-09-02 15:57:21
  */
 package deviceplugin
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -46,7 +46,19 @@ type vSFCPlugin struct {
 	// metrics?
 }
 
-func NewVSFCPlugin(resource, pluginDir string, dps pluginapi.DevicePluginServer) Plugin {
+type PluginMgr interface {
+	CleanUp()
+
+	Run(ctx context.Context, stopChan <-chan struct{}) error
+}
+
+type pluginMgr struct {
+	plugins []Plugin
+
+	pluginDir string
+}
+
+func NewPlugin(resource, pluginDir string, dps pluginapi.DevicePluginServer) Plugin {
 	return &vSFCPlugin {
 		DevicePluginServer: dps,
 		resource:           resource,
@@ -55,16 +67,55 @@ func NewVSFCPlugin(resource, pluginDir string, dps pluginapi.DevicePluginServer)
 	}
 }
 
+func NewPluginMgr(resources []string, pluginDir, allocAddr string) (PluginMgr, error) {
+	var plugins []Plugin
+	for _, resource := range resources {
+		dps := NewDevicePluginServer(allocAddr)
+		if strings.Contains(resource, "vsfc-handle") {
+			if vsfcDps, ok := dps.(VSFCPluginServer); ok {
+				vsfcDps.SetSkipAlloc(true)
+				} else {
+					return nil, fmt.Errorf("can't skip the precedure of allocating  resource: %v", resource)
+				}
+			}
+		plugin := NewPlugin(resource, pluginDir, dps)
+		plugins = append(plugins, plugin)
+	}
+	return &pluginMgr {
+		plugins: plugins,
+		pluginDir: pluginDir,
+	}, nil
+}
+
 func MakeUnixSockPath(pluginDir, resource string) string {
 	return filepath.Join(
 		pluginDir,
 		fmt.Sprintf(
-			"%s-%s-%d.sock", 
-			socketPrefix, 
-			base64.StdEncoding.EncodeToString([]byte(resource)), 
+			"%s-%d.sock",
+			strings.Replace(resource, "/", "~", -1),
 			time.Now().Unix(),
 		),
 	)
+}
+
+func (mgr *pluginMgr) CleanUp() {
+	// clean up all unix sock
+}
+
+func (mgr *pluginMgr) Run(ctx context.Context, stopChan <-chan struct{}) error {
+	ctx, cancel := context.WithCancel(ctx)
+	var wg sync.WaitGroup
+	for _, plugin := range mgr.plugins {
+		go func(plugin Plugin) {
+			wg.Add(1)
+			plugin.Run(ctx)
+			wg.Done()
+		} (plugin)
+	}
+	<-stopChan
+	cancel()
+	wg.Wait()
+	return nil
 }
 
 func (vsfc *vSFCPlugin) Run(ctx context.Context) error {
@@ -90,7 +141,7 @@ func (vsfc *vSFCPlugin) Run(ctx context.Context) error {
 
 // plugin RunOnce
 func (vsfc *vSFCPlugin) runOnce(ctx context.Context) error {
-	
+
 	g := run.Group{}
 	{
 		// Run the gRPC server.
@@ -112,7 +163,7 @@ func (vsfc *vSFCPlugin) runOnce(ctx context.Context) error {
 			vsfc.grpcServer.Stop()
 		})
 	}
-	
+
 	{
 		// Register the plugin with the kubelet.
 		ctx, cancel := context.WithCancel(ctx)
@@ -139,7 +190,7 @@ func (vsfc *vSFCPlugin) runOnce(ctx context.Context) error {
 			cancel()
 		})
 	}
-	
+
 	{
 		// Watch the socket.
 		t := time.NewTicker(socketCheckInterval)
@@ -166,7 +217,7 @@ func (vsfc *vSFCPlugin) runOnce(ctx context.Context) error {
 func (vsfc *vSFCPlugin) registerWithKubelet() error {
 	glog.Info("registering plugin with kubelet")
 	conn, err := grpc.Dial(
-		filepath.Join(vsfc.pluginDir, filepath.Base(pluginapi.KubeletSocket)), 
+		filepath.Join(vsfc.pluginDir, filepath.Base(pluginapi.KubeletSocket)),
 		grpc.WithInsecure(),
 		grpc.WithBlock(),
 		grpc.WithDialer(func(addr string, timeout time.Duration) (net.Conn, error) {

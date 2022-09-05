@@ -3,18 +3,20 @@ package deviceplugin
 import (
 	"context"
 	"crypto/sha1"
+	"encoding/json"
 	"fmt"
-	"regexp"
-	"sfc-virtual-device-plugin/plugin/util"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"sfc-virtual-device-plugin/efvi"
+	"sfc-virtual-device-plugin/plugin/util"
 
 	"github.com/golang/glog"
 	"google.golang.org/grpc"
+
+	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 )
 
@@ -22,7 +24,6 @@ import (
 const (
 	vNicPerNic = 8
 
-	regExpSFC    = "(?m)[\r\n]+^.*SFC[6-9].*$"
 	sharedMemory = "/dev/shm/"
 	hugepages    = "/mnt/hugepages/"
 	defaultPermission = "mrw"
@@ -41,40 +42,62 @@ type MountDevice struct {
 	mounts      []*pluginapi.Mount
 }
 
+type VSFCPluginServer interface {
+	pluginapi.DevicePluginServer
+
+	SetSkipAlloc(bool)
+}
+
 type vSFCPluginServer struct {
 	mu         sync.Mutex
 	devices    map[string]MountDevice
 	allocAddr  string
+	skipAlloc  bool
+	firstRunDiscover bool
+
+	// clientset kubernetes.Interface
 }
 
-func NewVSFCPluginServer(resource, pluginDir, allocServiceAddr string) Plugin {
-	server := &vSFCPluginServer {
+func NewDevicePluginServer(allocServiceAddr string) pluginapi.DevicePluginServer {
+	// config, _ := rest.InClusterConfig()
+	// clientset, _ := kubernetes.NewForConfig(config)
+
+	return &vSFCPluginServer {
 		devices:   make(map[string]MountDevice),
 		allocAddr: allocServiceAddr,
+		skipAlloc: false,
+		firstRunDiscover: true,
+		// clientset: clientset,
 	}
-	return NewVSFCPlugin(resource, pluginDir, server)
+}
+
+func (vsfc *vSFCPluginServer) SetSkipAlloc(skipAlloc bool) {
+	vsfc.skipAlloc = skipAlloc
 }
 
 func (vsfc *vSFCPluginServer) discoverSolarflareResources() ([]MountDevice, error) {
 	var devices []MountDevice
-	out, err := util.ExecCommandAfterSSH("lshw", "-short", "-class", "network")
-	if err != nil {
-		return nil, fmt.Errorf("Error while discovering: %v", err)
-	}
-	re := regexp.MustCompile(regExpSFC)
-	sfcNICs := re.FindAllString(out.String(), -1)
-	for index, nic := range sfcNICs {
-		glog.V(2).Info("logical name: ", strings.Fields(nic)[1])
+
+	for index, nic := range util.FindSolarflareNIC() {
+		if vsfc.firstRunDiscover {
+			glog.Info("logical name: ", nic.Name)
+		}
 		for i := 1; i <= vNicPerNic; i++ {
+			b, err := json.Marshal(nic)
+			if err != nil {
+				glog.Errorf("failed to marshal nic object: %v", err)
+				continue
+			}
 			h := sha1.New()
-			h.Write([]byte(nic))
+			h.Write(b)
 			h.Write([]byte(strconv.FormatUint(uint64(i), 10)))
+			h.Write([]byte(strconv.FormatBool(vsfc.skipAlloc)))
 			d := MountDevice {
 				Device: pluginapi.Device {
 					Health: pluginapi.Healthy,
 				},
 				name: viAllocNamePrefix + fmt.Sprintf("%d%d", index, i),
-				nic: strings.Fields(nic)[1],
+				nic: nic.Name,
 			}
 			d.deviceSpecs = append(d.deviceSpecs, &pluginapi.DeviceSpec {
 				HostPath: "/dev/sfc_char",
@@ -86,15 +109,18 @@ func (vsfc *vSFCPluginServer) discoverSolarflareResources() ([]MountDevice, erro
 				ContainerPath: "/dev/sfc_affinity",
 				Permissions: defaultPermission,
 			})
-			d.mounts = append(d.mounts, &pluginapi.Mount {
-				HostPath: sharedMemory + d.name,
-				ContainerPath: viContainerMountPath,
-				ReadOnly: false,
-			})
+			if !vsfc.skipAlloc {
+				d.mounts = append(d.mounts, &pluginapi.Mount {
+					HostPath: sharedMemory + d.name,
+					ContainerPath: viContainerMountPath,
+					ReadOnly: false,
+				})
+			}
 			d.ID = fmt.Sprintf("%x", h.Sum(nil))
 			devices = append(devices, d)
 		}
 	}
+	vsfc.firstRunDiscover = false
 	return devices, nil
 }
 
@@ -146,13 +172,18 @@ func (vsfc *vSFCPluginServer) Allocate(_ context.Context, req *pluginapi.Allocat
 	res := &pluginapi.AllocateResponse {
 		ContainerResponses: make([]*pluginapi.ContainerAllocateResponse, 0, len(req.ContainerRequests)),
 	}
-	conn, err := grpc.Dial(vsfc.allocAddr, grpc.WithInsecure(), grpc.WithBlock())
-	if err != nil {
-		glog.Fatal("dial to allocate server failed: ", err)
-		return nil, fmt.Errorf("requested allocate server is unreachable")
+
+	var client efvi.EfviServiceClient
+	if !vsfc.skipAlloc {
+		conn, err := grpc.Dial(vsfc.allocAddr, grpc.WithInsecure(), grpc.WithBlock())
+		if err != nil {
+			glog.Fatal("dial to allocate server failed: ", err)
+			return nil, fmt.Errorf("requested allocate server is unreachable")
+		}
+		defer conn.Close()
+		client = efvi.NewEfviServiceClient(conn)
 	}
-	defer conn.Close()
-	client := efvi.NewEfviServiceClient(conn)
+
 	for _, r := range req.ContainerRequests {
 		resp := new(pluginapi.ContainerAllocateResponse)
 		// Add all requested devices to to response.
@@ -161,35 +192,47 @@ func (vsfc *vSFCPluginServer) Allocate(_ context.Context, req *pluginapi.Allocat
 			if !ok {
 				return nil, fmt.Errorf("requested device does not exist %q", id)
 			}
-			viResource, err := client.ApplyVirtualDevice(context.Background(),
-				&efvi.ApplyRequest {
-					Interface:  d.nic,
-					Name: d.name,
-			})
-			if err != nil {
-				return nil, fmt.Errorf("requested device apply failed err: %v", err)
-			}
-			if viResource.Code != 0 {
-				return nil, fmt.Errorf("requested device apply error: %q", viResource.Message)
-			}
-			glog.Info("succ path:", viResource.ViPath)
 			if d.Health != pluginapi.Healthy {
 				return nil, fmt.Errorf("requested device is not healthy %q", id)
 			}
+
+			if !vsfc.skipAlloc {
+				viResource, err := client.ApplyVirtualDevice(context.Background(),
+					&efvi.ApplyRequest {
+						Interface:  d.nic,
+						Name: d.name,
+				})
+				if err != nil {
+					return nil, fmt.Errorf("requested device apply failed err: %v", err)
+				}
+				if viResource.Code != 0 {
+					return nil, fmt.Errorf("requested device apply error: %q", viResource.Message)
+				}
+				glog.Info("succ path:", viResource.ViPath)
+				if viResource.QueuePath != "" {
+					glog.Info("using hugepages")
+					resp.Mounts = append(resp.Mounts, &pluginapi.Mount {
+						HostPath: hugepages + d.name,
+						ContainerPath: viHugePageQueueMountPath,
+						ReadOnly: false,
+					})
+				}
+			}
+
+
 			resp.Devices = append(resp.Devices, d.deviceSpecs...)
 			resp.Mounts = append(resp.Mounts, d.mounts...)
-			if viResource.QueuePath != "" {
-				glog.Info("using hugepages")
-				resp.Mounts = append(resp.Mounts, &pluginapi.Mount {
-					HostPath: hugepages + d.name,
-					ContainerPath: viHugePageQueueMountPath,
-					ReadOnly: false,
-				})
-			}
+
 		}
 		res.ContainerResponses = append(res.ContainerResponses, resp)
 	}
 
+	// pod, err := vsfc.clientset.CoreV1().Pods("default").Get(context.TODO(), "debian", v1.GetOptions{})
+	// if err != nil {
+	// 	glog.Info("pod:", pod.Name)
+	// } else {
+	// 	glog.Info("pod err:", err)
+	// }
 	return res, nil
 }
 
