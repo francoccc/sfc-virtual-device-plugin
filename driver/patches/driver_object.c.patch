@@ -1,0 +1,27 @@
+diff --git src/lib/efrm/driver_object.c src/lib/efrm/driver_object.c
+index 35d3af8..8763186 100644
+--- src/lib/efrm/driver_object.c
++++ src/lib/efrm/driver_object.c
+@@ -46,6 +46,8 @@
+ #include <ci/efrm/pd.h>
+ #include <ci/driver/resource/linux_efhw_nic.h>
+ #include <linux/nsproxy.h>
++#include <linux/if_macvlan.h>
++#include <linux/netdevice.h>
+ #include "efrm_internal.h"
+
+
+@@ -372,6 +374,13 @@ int efrm_client_get_by_dev(const struct net_device *dev,
+ 	if (client == NULL)
+ 		return -ENOMEM;
+
++	if (netif_is_macvlan(dev)) {
++		const struct macvlan_dev *macvlan = netdev_priv(dev);
++		const struct net_device *prevdev = dev;
++		dev = macvlan->lowerdev;
++		printk(KERN_INFO "[efrm] switch macvlan device %s to lower device %s.\n", prevdev->name, dev->name);
++	}
++
+ 	spin_lock_bh(&efrm_nic_tablep->lock);
+ 	list_for_each(link, &efrm_nics) {
+ 		n = container_of(link, struct efrm_nic, link);

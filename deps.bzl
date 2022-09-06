@@ -1,3 +1,9 @@
+"""
+    @author Franco Chen
+    @desc Load external dependencies
+    @date 2022/09/06
+"""
+
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 def _build_external_local_repo(path, build_file, repo = None):
@@ -86,5 +92,18 @@ def external_build(name):
             ],
         )
 
+    if "onload" not in native.existing_rules():
+        http_archive(
+            name = "onload",
+            build_file = "//bazel:openonload.BUILD",
+            urls = ["http://headquarter.prod.highfortfunds.com/s3_api/dev/hippo/onload-7.1.3.202.tgz"],
+            strip_prefix = "onload-7.1.3.202",
+            sha256 = "1eaee3039bf8ad53f3879f37d6e3eb08017e8bc050ffc23c9d6ef4018b208b9e",
+            patches = [
+                "//driver/patches:driver_object.c.patch",
+                "//driver/patches:vi.h.patch",
+            ],
+        )
+
     _build_external_local_repo("contrib/linux-headers-common", "//bazel:linux_headers.BUILD", "linux")
-    _build_external_local_repo("contrib/onload", "//bazel:openonload.BUILD", "onload")
+    # _build_external_local_repo("contrib/onload", "//bazel:openonload.BUILD", "onload")
