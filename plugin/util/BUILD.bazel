@@ -5,5 +5,8 @@ go_library(
     srcs = ["util.go"],
     importpath = "sfc-virtual-device-plugin/plugin/util",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_golang_glog//:glog"],
+    deps = [
+        "@com_github_golang_glog//:glog",
+        "@com_github_safchain_ethtool//:ethtool",
+    ],
 )

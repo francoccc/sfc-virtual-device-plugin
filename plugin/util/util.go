@@ -3,12 +3,14 @@ package util
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"regexp"
 	"strings"
 
 	"github.com/golang/glog"
+	"github.com/safchain/ethtool"
 )
 
 const (
@@ -59,6 +61,7 @@ func ForkProcess(cmdName string, args []string) {
 	}
 }
 
+
 type NicLshwDetail struct {
 	Path  string `json:"path"`
 	Name  string `json:"name"`
@@ -66,6 +69,7 @@ type NicLshwDetail struct {
 	Desc  string `json:"desc"`
 }
 
+// Deprecated: No longer to use lshw to discover the solarflare cards
 func FindSolarflareNIC() []NicLshwDetail {
 	var nics []NicLshwDetail
 	out, err := ExecCommandAfterSSH("lshw", "-short", "-class", "network")
@@ -84,4 +88,44 @@ func FindSolarflareNIC() []NicLshwDetail {
 		nics = append(nics, n)
 	}
 	return nics
+}
+
+func verifySolarflareCard(inter net.Interface, handle *ethtool.Ethtool) bool {
+	driver, err := handle.DriverInfo(inter.Name)
+	if err != nil {
+		return false
+	}
+	if driver.Driver == "sfc" {
+		return true
+	}
+	return false
+}
+
+func FindSolarflareInterfaces() []net.Interface {
+	var verified []net.Interface
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		panic(err.Error())
+	}
+	handle, err := ethtool.NewEthtool()
+	if err != nil {
+		panic(err.Error())
+	}
+	defer handle.Close()
+
+	for _, inter := range interfaces {
+		if verifySolarflareCard(inter, handle) {
+			verified = append(verified, inter)
+		}
+	}
+
+	return verified
+}
+
+func FindSolarflareInterKeyMap() map[string]net.Interface {
+	cont := make(map[string]net.Interface)
+	for _, inter := range FindSolarflareInterfaces() {
+		cont[inter.Name] = inter
+	}
+	return cont
 }
