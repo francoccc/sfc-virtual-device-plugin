@@ -3,7 +3,7 @@
  * @Author: Franco Chen
  * @Date: 2022-06-06 17:30:44
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-09-02 14:35:59
+ * @LastEditTime: 2022-09-19 10:15:48
  */
 package main
 
@@ -12,6 +12,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sfc-virtual-device-plugin/plugin/config"
 	"sfc-virtual-device-plugin/plugin/deviceplugin"
 	"sfc-virtual-device-plugin/plugin/util"
 
@@ -35,13 +36,15 @@ func main() {
 	glog.Info("Start")
 	util.ForkProcess("/app/efvi_allocator", []string{})
 
-	pluginMgr, err := deviceplugin.NewPluginMgr(
-		[]string{*resourceName, *resourceHandleName}, *pluginPath, *allocServiceAddr)
+	config.Run(context.Background())
+
+	pluginMgr, err := deviceplugin.NewPluginMgr(*pluginPath)
 	if err != nil {
 		fmt.Println("new plugin manager err: ", err)
 		os.Exit(1)
 	}
 
+	// never stop
 	pluginMgr.Run(context.Background(), make(chan struct{}))
 	defer pluginMgr.CleanUp()
 

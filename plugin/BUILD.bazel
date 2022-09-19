@@ -13,6 +13,7 @@ go_library(
     importpath = "sfc-virtual-device-plugin/plugin",
     visibility = ["//visibility:private"],
     deps = [
+        "//plugin/config",
         "//plugin/deviceplugin",
         "//plugin/util",
         "//plugin/vendor/k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1",

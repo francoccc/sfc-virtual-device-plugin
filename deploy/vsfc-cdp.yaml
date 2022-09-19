@@ -50,6 +50,8 @@ spec:
             mountPath: "/dev/sfc_char"
           - name: sfc-affinity
             mountPath: "/dev/sfc_affinity"
+          - name: config-file
+            mountPath: "/etc/solarflare"
       volumes:
         - name: ssh-key
           hostPath:
@@ -72,3 +74,6 @@ spec:
         - name: sfc-affinity
           hostPath:
             path: "/dev/sfc_affinity"
+        - name: config-file
+          hostPath:
+            path: "/etc/solarflare"
