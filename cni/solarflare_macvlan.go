@@ -105,34 +105,34 @@ func createMacvlan(conf *NetConf, ifName string, netns ns.NetNS) (*solarflareInt
 		return nil, err
 	}
 
-	solarflare_nics := util.FindSolarflareNIC()
-	m, err := netlink.LinkByName(solarflare_nics[0].Name)
+	solarflare_inters := util.FindSolarflareInterfaces()
+	m, err := netlink.LinkByName(solarflare_inters[0].Name)
 	if err != nil {
-		return nil, fmt.Errorf("failed to lookup master %q: %v", solarflare_nics[0].Name, err)
+		return nil, fmt.Errorf("failed to lookup master %q: %v", solarflare_inters[0].Name, err)
 	}
-	macvlan.ParentName = solarflare_nics[0].Name
+	macvlan.ParentName = solarflare_inters[0].Name
 
 	// due to kernel bug we have to create with tmpName or it might
 	// collide with the name on the host and error out
 	tmpName, err := ip.RandomVethName()
 	if err != nil {
-	return nil, err
+		return nil, err
 	}
 
 	linkAttrs := netlink.LinkAttrs{
 		MTU:         conf.MTU,
 		Name:        tmpName,
 		ParentIndex: m.Attrs().Index,
-		Namespace:   netlink.NsFd(int(netns.Fd())),
+		Namespace:   netlink.NsPid(1),
 	}
 
-	// if conf.Mac != "" {
-	// 	addr, err := net.ParseMAC(conf.Mac)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("invalid args %v for MAC addr: %v", conf.Mac, err)
-	// 	}
-	// 	linkAttrs.HardwareAddr = addr
-	// }
+	if conf.Mac != "" {
+		addr, err := net.ParseMAC(conf.Mac)
+		if err != nil {
+			return nil, fmt.Errorf("invalid args %v for MAC addr: %v", conf.Mac, err)
+		}
+		linkAttrs.HardwareAddr = addr
+	}
 
 	mv := &netlink.Macvlan{
 		LinkAttrs: linkAttrs,
@@ -140,13 +140,16 @@ func createMacvlan(conf *NetConf, ifName string, netns ns.NetNS) (*solarflareInt
 	}
 
 	if err := netlink.LinkAdd(mv); err != nil {
-		return nil, fmt.Errorf("failed to create macvlan: %v", err)
+		return nil, fmt.Errorf("failed to create macvlan pareIndex: %d mode: %q err: %v", m.Attrs().Index, conf.Mode, err)
+	}
+
+	if err := netlink.LinkSetNsFd(mv, int(netns.Fd())); err != nil {
+		return nil, fmt.Errorf("failed to set namespace");
 	}
 
 	err = netns.Do(func(_ ns.NetNS) error {
 		err := ip.RenameLink(tmpName, ifName)
 		if err != nil {
-			_ = netlink.LinkDel(mv)
 			return fmt.Errorf("failed to rename macvlan to %q: %v", ifName, err)
 		}
 		macvlan.Name = ifName
@@ -161,7 +164,9 @@ func createMacvlan(conf *NetConf, ifName string, netns ns.NetNS) (*solarflareInt
 
 		return nil
 	})
+
 	if err != nil {
+		_ = netlink.LinkDel(mv)
 		return nil, err
 	}
 
@@ -362,7 +367,6 @@ func cmdCheck(args *skel.CmdArgs) error {
 		return err
 	}
 	// __ := n.IPAM.Type != "" // is Layer3
-
 	// isLayer3  ipam.ExecCheck()
 
 	netns, err := ns.GetNS(args.Netns)
@@ -405,10 +409,10 @@ func cmdCheck(args *skel.CmdArgs) error {
 	}
 
 
-	solarflare_nics := util.FindSolarflareNIC()
-	netlink, err := netlink.LinkByName(solarflare_nics[0].Name)
+	solarflare_inters := util.FindSolarflareInterfaces()
+	netlink, err := netlink.LinkByName(solarflare_inters[0].Name)
 	if err != nil {
-		return fmt.Errorf("failed to lookup interface %q: %v", solarflare_nics[0].Name, err)
+		return fmt.Errorf("failed to lookup interface %q: %v", solarflare_inters[0].Name, err)
 	}
 
 	if err := netns.Do(func(_ ns.NetNS) error {
