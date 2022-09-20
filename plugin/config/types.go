@@ -9,6 +9,7 @@ type Config struct {
 type Interface struct {
 	Name     string  `yaml:"name"`
 	Resource string  `yaml:"resource"`
+	Parent   string  `yaml:"parent,omitempty"`
 	Splits  int `yaml:"splits,omitempty"`
 	AllocServiceAddr string `yaml:"allocServiceAddr,omitempty"`
 }

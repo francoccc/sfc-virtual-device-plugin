@@ -14,7 +14,7 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//plugin/config",
-        "//plugin/deviceplugin",
+        "//plugin/deviceplugin/manager",
         "//plugin/util",
         "//plugin/vendor/k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1",
         "@com_github_golang_glog//:glog",

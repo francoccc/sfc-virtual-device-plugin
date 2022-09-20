@@ -3,15 +3,17 @@
  * @Author: Franco Chen
  * @Date: 2022-09-16 10:36:58
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-09-19 15:17:20
+ * @LastEditTime: 2022-09-20 14:38:15
  */
-package deviceplugin
+package manager
 
 import (
 	"context"
 	"sync"
 
 	"sfc-virtual-device-plugin/plugin/config"
+	"sfc-virtual-device-plugin/plugin/deviceplugin"
+	"sfc-virtual-device-plugin/plugin/deviceplugin/registry"
 
 	"github.com/golang/glog"
 )
@@ -19,31 +21,37 @@ import (
 
 type PluginMgr interface {
 	CleanUp()
-	Run(ctx context.Context, stopChan <-chan struct{}) error
+	Run(ctx context.Context, autoConf bool, stopChan <-chan struct{}) error
 }
 
 type pluginMgr struct {
 	wg sync.WaitGroup
-	plugins map[string]Plugin
+	plugins map[string]deviceplugin.Plugin
 	pluginDir string
 	pluginUpdate chan struct{}
 }
 
 func NewPluginMgr(pluginDir string) (PluginMgr, error) {
 	return &pluginMgr{
-		plugins: make(map[string]Plugin),
+		plugins: make(map[string]deviceplugin.Plugin),
 		pluginDir: pluginDir,
 		pluginUpdate: make(chan struct{}),
 	}, nil
 }
 
-func (mgr *pluginMgr) Run(ctx context.Context, stopChan <-chan struct{}) error {
+func (mgr *pluginMgr) Run(ctx context.Context, autoConf bool, stopChan <-chan struct{}) error {
 	ctx, cancel := context.WithCancel(ctx)
-
-
 	// run with configUpdate
 	go mgr.syncLoop(ctx)
-	config.Subscribe("pluginMgr", mgr.pluginUpdate)
+
+	if autoConf {
+		// use pluginRegistry
+		glog.Info("use plugin registry to maintain resources and plugins")
+		registry.Transfer(mgr.pluginUpdate)
+		registry.Run(ctx)
+	} else {
+		config.Subscribe("pluginMgr", mgr.pluginUpdate)
+	}
 
 	<-stopChan
 	cancel()
@@ -66,7 +74,7 @@ func (mgr *pluginMgr) syncLoop(ctx context.Context) error {
 			glog.V(8).Info("config updated")
 			for _, inter := range config.Conf().Interfaces {
 				glog.V(8).Info("update interface ", inter)
-				constructor, ok := ResourceRegistry[inter.Resource]
+				constructor, ok := registry.ResourceRegistry[inter.Resource]
 				if !ok {
 					glog.Errorf("plugin not found by resource: %v", inter.Resource)
 					continue
@@ -74,7 +82,7 @@ func (mgr *pluginMgr) syncLoop(ctx context.Context) error {
 				if _, ok := mgr.plugins[inter.Resource]; !ok {
 					glog.Info("create and run plugin:", inter.Resource)
 					plugin := constructor(inter.Resource, mgr.pluginDir)
-					mgr.plugins[inter.Resource] = NewPluginBase(plugin)
+					mgr.plugins[inter.Resource] = deviceplugin.NewPluginBase(plugin)
 					mgr.runPlugin(ctx, inter.Resource)
 				}
 			}

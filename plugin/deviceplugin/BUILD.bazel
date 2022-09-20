@@ -4,8 +4,6 @@ go_library(
     name = "deviceplugin",
     srcs = [
         "plugin.go",
-        "plugin_manager.go",
-        "plugin_registry.go",
         "server.go",
         "vsfc_plugin.go",
     ],

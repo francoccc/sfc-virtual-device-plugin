@@ -114,13 +114,10 @@ func (c *config) resolveFile(file *os.File) error {
 		return err
 	}
 
-	glog.V(10).Info("guard lock")
 	c.guard.Lock()
-	glog.V(10).Info("guard get lock")
 	c.conf = &conf
 	c.sum = sum
 	c.guard.Unlock()
-	glog.V(10).Info("guard unlock")
 
 	glog.V(8).Info("notify config changed")
 	c.notifyAll()

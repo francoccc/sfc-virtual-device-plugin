@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "registry",
+    srcs = ["plugin_registry.go"],
+    importpath = "sfc-virtual-device-plugin/plugin/deviceplugin/registry",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//plugin/config",
+        "//plugin/deviceplugin",
+        "@com_github_golang_glog//:glog",
+    ],
+)
