@@ -1,0 +1,48 @@
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: Role
+# metadata:
+#   namespace: kube-system
+#   name: vsfc-cdp:internal
+# rules:
+#   - apiGroups: ['', 'batch']
+#     resources: ['jobs', 'pods', 'configmaps', 'pods/log']
+#     verbs: ['get', 'watch', 'list']
+# ---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: vsfc-cdp:cluster
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+- apiGroups: ["k8s.cni.cncf.io"]
+  resources: ["network-attachment-definitions"]
+  verbs: ["get", "update", "create"]
+---
+# apiVersion: rbac.authorization.k8s.io/v1
+# kind: RoleBinding
+# metadata:
+#   name: vsfc-cdp:internal
+#   namespace: kube-system
+# subjects:
+#   - kind: ServiceAccount
+#     name: vsfc-cdp
+#     namespace: kube-system
+# roleRef:
+#   kind: Role
+#   name: vsfc-cdp:internal
+#   apiGroup: ''
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: vsfc-cdp:cluster
+subjects:
+- kind: ServiceAccount
+  name: vsfc-cdp
+  namespace: kube-system
+roleRef:
+  kind: ClusterRole
+  name: vsfc-cdp:cluster
+  apiGroup: rbac.authorization.k8s.io

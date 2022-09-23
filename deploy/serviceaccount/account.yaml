@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vsfc-cdp-token
+  namespace: kube-system
+  annotations:
+     kubernetes.io/service-account.name: vsfc-cdp
+type: kubernetes.io/service-account-token
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  creationTimestamp: 2022-09-20T09:30:00Z
+  name: vsfc-cdp
+  namespace: kube-system
+  uid: 18b80a0e-0678-4306-a8d1-abecebd9e5d1
+secrets:
+  - name: vsfc-cdp-token
