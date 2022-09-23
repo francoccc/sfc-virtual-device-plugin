@@ -52,6 +52,28 @@ spec:
             mountPath: "/dev/sfc_affinity"
           - name: config-file
             mountPath: "/etc/solarflare"
+        env:
+          - name: NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+      initContainers:
+        - name: generate-kubeconfig
+          image: registry.corp.highfortfunds.com/highfort/plugin/vsfc/code-generation:latest
+          command: ["/app/code-generation"]
+          args:
+            - "-k8s-service-host=$(KUBERNETES_SERVICE_HOST)"
+            - "-k8s-service-port=$(KUBERNETES_SERVICE_PORT)"
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "15Mi"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: config-file
+              mountPath: "/etc/solarflare"
+              mountPropagation: Bidirectional
       volumes:
         - name: ssh-key
           hostPath:
@@ -77,3 +99,4 @@ spec:
         - name: config-file
           hostPath:
             path: "/etc/solarflare"
+      serviceAccountName: vsfc-cdp

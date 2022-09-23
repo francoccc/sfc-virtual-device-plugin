@@ -2,6 +2,8 @@ apiVersion: "k8s.cni.cncf.io/v1"
 kind: NetworkAttachmentDefinition
 metadata:
   name: gw-inter
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: highfortfunds.com/gw-inter
 spec:
   config: '{
       "cniVersion": "0.3.0",
