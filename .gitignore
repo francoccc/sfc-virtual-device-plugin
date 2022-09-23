@@ -3,6 +3,10 @@ plugin/vendor/*
 !plugin/vendor/k8s.io
 !plugin/vendor/modules.txt
 
+vendor/*
+vendor/k8s.io
+vendor/modules.txt
+
 .vscode
 
 contrib/linux-headers-common

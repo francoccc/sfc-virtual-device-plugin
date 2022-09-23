@@ -4,8 +4,8 @@ import (
 	"context"
 	"crypto/sha1"
 	"fmt"
-	"plugin/util"
 	"regexp"
+	"sfc-virtual-device-plugin/plugin/util"
 	"strconv"
 	"strings"
 	"sync"
@@ -21,7 +21,7 @@ import (
 
 const (
 	vNicPerNic = 8
-	
+
 	regExpSFC    = "(?m)[\r\n]+^.*SFC[6-9].*$"
 	sharedMemory = "/dev/shm/"
 	hugepages    = "/mnt/hugepages/"
@@ -161,7 +161,7 @@ func (vsfc *vSFCPluginServer) Allocate(_ context.Context, req *pluginapi.Allocat
 			if !ok {
 				return nil, fmt.Errorf("requested device does not exist %q", id)
 			}
-			viResource, err := client.ApplyVirtualDevice(context.Background(), 
+			viResource, err := client.ApplyVirtualDevice(context.Background(),
 				&efvi.ApplyRequest {
 					Interface:  d.nic,
 					Name: d.name,
@@ -189,7 +189,7 @@ func (vsfc *vSFCPluginServer) Allocate(_ context.Context, req *pluginapi.Allocat
 		}
 		res.ContainerResponses = append(res.ContainerResponses, resp)
 	}
-	
+
 	return res, nil
 }
 

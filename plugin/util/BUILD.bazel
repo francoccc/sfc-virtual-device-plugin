@@ -3,7 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "util",
     srcs = ["util.go"],
-    importpath = "plugin/util",
+    importpath = "sfc-virtual-device-plugin/plugin/util",
     visibility = ["//visibility:public"],
     deps = ["@com_github_golang_glog//:glog"],
 )

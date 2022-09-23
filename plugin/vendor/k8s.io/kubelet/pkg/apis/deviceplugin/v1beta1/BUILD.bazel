@@ -6,7 +6,7 @@ go_library(
         "api.pb.go",
         "constants.go",
     ],
-    importmap = "plugin/vendor/k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1",
+    importmap = "sfc-virtual-device-plugin/plugin/vendor/k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1",
     importpath = "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1",
     visibility = ["//visibility:public"],
     deps = [

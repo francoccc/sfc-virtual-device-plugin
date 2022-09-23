@@ -6,7 +6,7 @@ go_library(
         "plugin.go",
         "server.go",
     ],
-    importpath = "plugin/deviceplugin",
+    importpath = "sfc-virtual-device-plugin/plugin/deviceplugin",
     visibility = ["//visibility:public"],
     deps = [
         "//plugin/util",

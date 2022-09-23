@@ -10,7 +10,7 @@ repos:
         args: *args
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.3.0
-    hookss:
+    hooks:
     -   id: check-yaml
         args:
           - --allow-multiple-documents

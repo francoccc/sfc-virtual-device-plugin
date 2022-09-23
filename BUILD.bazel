@@ -6,6 +6,7 @@ genrule(
     cmd = "printenv > $@",
 )
 
+# gazelle:prefix sfc-virtual-device-plugin
 gazelle_binary(
     name = "gazelle-protobuf",
     languages = [
@@ -13,6 +14,16 @@ gazelle_binary(
         "@bazel_gazelle//language/proto",
         "@build_stack_rules_proto//language/protobuf",
     ],
+)
+
+gazelle(
+    name = "gazelle-update-repos",
+    args = [
+        "-from_file=go.mod",
+        "-to_macro=go_deps.bzl%go_repositories",
+        "-prune",
+    ],
+    command = "update-repos",
 )
 
 gazelle(
