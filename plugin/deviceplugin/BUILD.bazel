@@ -5,12 +5,17 @@ go_library(
     srcs = [
         "plugin.go",
         "server.go",
+        "types.go",
         "vsfc_plugin.go",
+        "vsfc_server.go",
     ],
     importpath = "sfc-virtual-device-plugin/plugin/deviceplugin",
     visibility = ["//visibility:public"],
     deps = [
+        "//plugin/client",
         "//plugin/config",
+        "//plugin/resource",
+        "//plugin/resource/types",
         "//plugin/util",
         "//plugin/vendor/k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1",
         "//proto:efvi",

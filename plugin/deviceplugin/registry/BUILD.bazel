@@ -8,6 +8,7 @@ go_library(
     deps = [
         "//plugin/config",
         "//plugin/deviceplugin",
+        "//plugin/resource/types",
         "@com_github_golang_glog//:glog",
     ],
 )

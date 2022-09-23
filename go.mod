@@ -60,15 +60,18 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.1.1
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
+	github.com/k8snetworkplumbingwg/network-attachment-definition-client v1.3.0
 	github.com/oklog/run v1.1.0
 	github.com/safchain/ethtool v0.2.0
 	github.com/vishvananda/netlink v1.1.1-0.20210330154013-f5de75959ad5
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
 	google.golang.org/genproto v0.0.0-20220107163113-42d7afdf6368 // indirect
 	google.golang.org/grpc v1.40.0
-	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/kubelet v0.0.0
+	gopkg.in/yaml.v3 v3.0.1
+	k8s.io/apimachinery v0.22.8
+	k8s.io/client-go v0.22.8
+	k8s.io/kubelet v0.19.7
+	k8s.io/kubernetes v1.19.7
 )
 
 replace k8s.io/node-api => k8s.io/node-api v0.16.15

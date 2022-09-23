@@ -1,0 +1,42 @@
+load("@io_bazel_rules_docker//container:container.bzl", "container_image", "container_push")
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "code-generation_lib",
+    srcs = ["kubeconfig.go"],
+    importpath = "sfc-virtual-device-plugin/cmd/code-generation",
+    visibility = ["//visibility:private"],
+)
+
+go_binary(
+    name = "code-generation",
+    embed = [":code-generation_lib"],
+    visibility = ["//visibility:public"],
+)
+
+container_image(
+    name = "code-generation_img",
+    base = "@debian-slim//image",
+    cmd = [
+        "/bin/sh",
+        "-c",
+        "/app/code-generation",
+    ],
+    directory = "/app/",
+    files = [
+        ":code-generation",
+    ],
+    layers = [],
+    mode = "0o755",
+    repository = "highfort",
+    stamp = True,
+)
+
+container_push(
+    name = "publish_image",
+    format = "Docker",
+    image = ":code-generation_img",
+    registry = "registry.corp.highfortfunds.com",
+    repository = "highfort/plugin/vsfc/code-generation",
+    tag = "latest",
+)

@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "list_resource_lib",
+    srcs = ["list_resource.go"],
+    importpath = "sfc-virtual-device-plugin/samples/list_resource",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@io_k8s_kubernetes//pkg/kubelet/apis/podresources",
+        "@io_k8s_kubernetes//pkg/kubelet/apis/podresources/v1alpha1",
+        "@io_k8s_kubernetes//pkg/kubelet/util",
+    ],
+)
+
+go_binary(
+    name = "list_resource",
+    embed = [":list_resource_lib"],
+    visibility = ["//visibility:public"],
+)

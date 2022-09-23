@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "netclient_lib",
+    srcs = ["netclient.go"],
+    importpath = "sfc-virtual-device-plugin/samples/netclient",
+    visibility = ["//visibility:private"],
+    deps = [
+        "@com_github_k8snetworkplumbingwg_network_attachment_definition_client//pkg/client/clientset/versioned/typed/k8s.cni.cncf.io/v1:k8s_cni_cncf_io",
+        "@io_k8s_apimachinery//pkg/apis/meta/v1:meta",
+        "@io_k8s_client_go//rest",
+    ],
+)
+
+go_binary(
+    name = "netclient",
+    embed = [":netclient_lib"],
+    visibility = ["//visibility:public"],
+)

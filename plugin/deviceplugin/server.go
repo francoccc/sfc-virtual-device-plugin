@@ -3,7 +3,6 @@ package deviceplugin
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/golang/glog"
@@ -14,25 +13,8 @@ import (
 )
 
 const (
-	deviceCheckInterval = 5 * time.Second
+	deviceCheckInterval = time.Duration(5) * time.Second
 )
-
-// device wraps the v1.beta1.Device type to add context about
-// the device needed by the GenericPlugin.
-type MountDevice struct {
-	pluginapi.Device
-	Name string
-	Nic string
-	DeviceSpecs []*pluginapi.DeviceSpec
-	Mounts      []*pluginapi.Mount
-}
-
-type PluginServerBase struct {
-	pluginapi.DevicePluginServer
-	impl       PluginServerImpl
-	mu         sync.Mutex
-	devices    map[string]MountDevice
-}
 
 // GetDeviceState always returns healthy.
 func (pluginServer *PluginServerBase) GetDeviceState(_ string) string {
@@ -61,8 +43,9 @@ func (pluginServer *PluginServerBase) GetDevicePluginOptions(_ context.Context, 
 
 // ListAndWatch lists all devices and then refreshes every deviceCheckInterval.
 func (pluginServer *PluginServerBase) ListAndWatch(_ *pluginapi.Empty, stream pluginapi.DevicePlugin_ListAndWatchServer) error {
-	glog.Info("kubelet starting listwatch")
+	glog.Info("kubelet starting ListAndWatch")
 	if _, err := pluginServer.refreshDevices(); err != nil {
+		glog.Errorf("error happened when refreshDevices err: %v", err)
 		return err
 	}
 	ok := false
@@ -74,12 +57,15 @@ func (pluginServer *PluginServerBase) ListAndWatch(_ *pluginapi.Empty, stream pl
 				res.Devices = append(res.Devices, &pluginapi.Device{ID: dev.ID, Health: dev.Health})
 			}
 			if err := stream.Send(res); err != nil {
+				glog.Errorf("error sending ListAndWatch err: %v", err)
 				return err
 			}
 		}
 		<-time.After(deviceCheckInterval)
+		glog.V(10).Info("run next ListAndWatch")
 		ok, err = pluginServer.refreshDevices()
 		if err != nil {
+			glog.Errorf("error happened when refreshDevices err: %v", err)
 			return err
 		}
 	}

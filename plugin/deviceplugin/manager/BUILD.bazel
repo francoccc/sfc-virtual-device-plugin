@@ -6,9 +6,11 @@ go_library(
     importpath = "sfc-virtual-device-plugin/plugin/deviceplugin/manager",
     visibility = ["//visibility:public"],
     deps = [
+        "//plugin/client",
         "//plugin/config",
         "//plugin/deviceplugin",
         "//plugin/deviceplugin/registry",
+        "//plugin/resource/types",
         "@com_github_golang_glog//:glog",
     ],
 )

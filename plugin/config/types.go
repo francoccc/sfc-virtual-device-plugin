@@ -13,3 +13,14 @@ type Interface struct {
 	Splits  int `yaml:"splits,omitempty"`
 	AllocServiceAddr string `yaml:"allocServiceAddr,omitempty"`
 }
+
+type NetAttachDefConf struct {
+	CNIVersion string `json:"cniVersion,omitempty"`
+	Name string `json:"name"`
+	Plugins []Plugin `json:"plugins"`
+}
+
+type Plugin struct {
+	Type string `json:"type"`
+	Mode string `json:"mode"`
+}

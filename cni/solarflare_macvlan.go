@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"sfc-virtual-device-plugin/plugin/util"
+	"os"
+	k8s "sfc-virtual-device-plugin/plugin/client"
+	"sfc-virtual-device-plugin/plugin/resource"
+	resourcetype "sfc-virtual-device-plugin/plugin/resource/types"
 
 	"github.com/vishvananda/netlink"
 
@@ -25,6 +28,7 @@ type NetConf struct {
 	Mode string `json:"mode"`
 	MTU  int    `json:"mtu"`
 	Mac  string `json:"mac,omitempty"`
+	DeviceID string `json:"deviceID,omitempty"`
 
 	RuntimeConfig struct {
 		Mac string `json:"mac,omitempty"`
@@ -97,7 +101,7 @@ func modeToString(mode netlink.MacvlanMode) (string, error) {
 	}
 }
 
-func createMacvlan(conf *NetConf, ifName string, netns ns.NetNS) (*solarflareInterface, error) {
+func createMacvlan(conf *NetConf, ifName, parentIfName string, netns ns.NetNS) (*solarflareInterface, error) {
 	macvlan := &solarflareInterface{}
 
 	mode, err := modeFromString(conf.Mode)
@@ -105,12 +109,11 @@ func createMacvlan(conf *NetConf, ifName string, netns ns.NetNS) (*solarflareInt
 		return nil, err
 	}
 
-	solarflare_inters := util.FindSolarflareInterfaces()
-	m, err := netlink.LinkByName(solarflare_inters[0].Name)
+	m, err := netlink.LinkByName(parentIfName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to lookup master %q: %v", solarflare_inters[0].Name, err)
+		return nil, fmt.Errorf("failed to lookup master %q: %v", parentIfName, err)
 	}
-	macvlan.ParentName = solarflare_inters[0].Name
+	macvlan.ParentName = parentIfName
 
 	// due to kernel bug we have to create with tmpName or it might
 	// collide with the name on the host and error out
@@ -206,13 +209,59 @@ func getIPsOfIPAM(addrs []net.IPNet) ([]*current.IPConfig) {
 	return IPs
 }
 
+func getParentInterface(deviceId, name string, k8sclient *k8s.ClientInfo) (string, error) {
+		var parentIfName string
+		if len(deviceId) <= 0 {
+			return "", fmt.Errorf("device did not exists")
+		}
+		node, err := os.Hostname()
+		if err != nil {
+			return "", err
+		}
+		nad, err := k8sclient.GetDefaultNetAttachDef(name)
+		if err != nil {
+			return "", fmt.Errorf("nad not found in k8s err: %v", err)
+		}
+
+		annotation := resourcetype.NodeResourceAnnotPrefix + node
+		devicesAnnot, ok := nad.Annotations[annotation]
+		if !ok {
+			return "", fmt.Errorf("device info not found in k8s annot: %v", annotation)
+		}
+
+		found := false
+		devices, err := resource.ParseDeviceInfo([]byte(devicesAnnot))
+		if err != nil {
+			return "", fmt.Errorf("failed to parse device info err: %v", err)
+		}
+		for _, device := range devices {
+			for _, confDeviceId := range device.DeviceIDs {
+				if deviceId ==  confDeviceId {
+					found = true
+					break
+				}
+			}
+			if found {
+				parentIfName = device.Name
+			}
+		}
+		if !found {
+			return "", fmt.Errorf("deviceId not found in nad deviceId: %v", deviceId)
+		}
+		return parentIfName, nil
+}
+
 // we want to use same ip
-func cmdAdd(args *skel.CmdArgs) error {
+func cmdAdd(args *skel.CmdArgs, k8sclient *k8s.ClientInfo) error {
 	n, cniVersion, err := loadConf(args.StdinData, args.Args)
 	if err != nil {
 		return err
 	}
-	// isLayer3 := n.IPAM.Type != ""
+
+	parentIfName, err := getParentInterface(n.DeviceID, n.Name, k8sclient)
+	if err != nil {
+		return err
+	}
 
 	netns, err := ns.GetNS(args.Netns)
 	if err != nil {
@@ -220,7 +269,7 @@ func cmdAdd(args *skel.CmdArgs) error {
 	}
 	defer netns.Close()
 
-	macvlanInterface, err := createMacvlan(n, args.IfName, netns)
+	macvlanInterface, err := createMacvlan(n, args.IfName, parentIfName, netns)
 	if err != nil {
 		return err
 	}
@@ -361,13 +410,11 @@ func cmdDel(args *skel.CmdArgs) error {
 	return err
 }
 
-func cmdCheck(args *skel.CmdArgs) error {
+func cmdCheck(args *skel.CmdArgs, k8sclient *k8s.ClientInfo) error {
 	n, _, err := loadConf(args.StdinData, args.Args)
 	if err != nil {
 		return err
 	}
-	// __ := n.IPAM.Type != "" // is Layer3
-	// isLayer3  ipam.ExecCheck()
 
 	netns, err := ns.GetNS(args.Netns)
 	if err != nil {
@@ -408,11 +455,13 @@ func cmdCheck(args *skel.CmdArgs) error {
 			contMap.Sandbox, args.Netns)
 	}
 
-
-	solarflare_inters := util.FindSolarflareInterfaces()
-	netlink, err := netlink.LinkByName(solarflare_inters[0].Name)
+	parentIfName, err := getParentInterface(n.DeviceID, n.Name, k8sclient)
 	if err != nil {
-		return fmt.Errorf("failed to lookup interface %q: %v", solarflare_inters[0].Name, err)
+		return err
+	}
+	netlink, err := netlink.LinkByName(parentIfName)
+	if err != nil {
+		return fmt.Errorf("failed to lookup interface %q: %v", parentIfName, err)
 	}
 
 	if err := netns.Do(func(_ ns.NetNS) error {
@@ -472,5 +521,23 @@ func validateCniContainerInterface(intf current.Interface, parentIndex int, mode
 }
 
 func main() {
-	skel.PluginMain(cmdAdd, cmdCheck, cmdDel, version.All, bv.BuildString("sfcmacvlan"))
+	skel.PluginMain(
+		func (args *skel.CmdArgs) error {
+			k8sclient, err := k8s.NewLocalClient()
+			if err != nil {
+				return err
+			}
+			return cmdAdd(args, k8sclient)
+		},
+		func (args *skel.CmdArgs) error {
+			k8sclient, err := k8s.NewLocalClient()
+			if err != nil {
+				return err
+			}
+			return cmdCheck(args, k8sclient)
+		},
+		cmdDel,
+		version.All,
+		bv.BuildString("sfcmacvlan"),
+	)
 }

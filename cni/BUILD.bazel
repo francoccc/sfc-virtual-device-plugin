@@ -6,6 +6,9 @@ go_library(
     importpath = "sfc-virtual-device-plugin/cni",
     visibility = ["//visibility:private"],
     deps = [
+        "//plugin/client",
+        "//plugin/resource",
+        "//plugin/resource/types",
         "//plugin/util",
         "@com_github_containernetworking_cni//pkg/skel",
         "@com_github_containernetworking_cni//pkg/types",

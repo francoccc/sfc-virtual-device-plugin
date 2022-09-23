@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "resource",
+    srcs = ["storage.go"],
+    importpath = "sfc-virtual-device-plugin/plugin/resource",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//plugin/client",
+        "//plugin/resource/types",
+        "@com_github_k8snetworkplumbingwg_network_attachment_definition_client//pkg/apis/k8s.cni.cncf.io/v1:k8s_cni_cncf_io",
+    ],
+)

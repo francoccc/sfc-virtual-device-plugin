@@ -3,7 +3,7 @@
  * @Author: Franco Chen
  * @Date: 2022-06-27 11:37:55
  * @LastEditors: Franco Chen
- * @LastEditTime: 2022-09-19 16:54:32
+ * @LastEditTime: 2022-09-22 16:43:46
  */
 package deviceplugin
 
@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	k8s "sfc-virtual-device-plugin/plugin/client"
+
 	"github.com/golang/glog"
 	"google.golang.org/grpc"
 	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
@@ -22,24 +24,8 @@ import (
 
 // var mutex sync.Mutex
 const (
-	restartInterval     = 5 * time.Second
+	restartInterval     = time.Duration(5) * time.Second
 )
-
-type Plugin interface {
-	CleanUp() error
-	Run(context.Context) error
-	// RunOnce(context.Context) error
-
-	registerWithKubelet() error
-}
-
-type PluginBase struct {
-	Plugin
-	PluginImpl
-	resource   string
-	pluginDir  string
-	socket     string
-}
 
 func NewPluginBase(impl PluginImpl) Plugin {
 	return &PluginBase{
@@ -58,14 +44,14 @@ func MakeUnixSockPath(pluginDir, resource string) string {
 	)
 }
 
-func (plugin *PluginBase) Run(ctx context.Context) error {
+func (plugin *PluginBase) Run(ctx context.Context, k8sclient *k8s.ClientInfo) error {
 	Outer:
 		for {
 			select {
 			case <-ctx.Done():
 				break Outer
 			default:
-				if err := plugin.PluginImpl.RunOnce(ctx); err != nil {
+				if err := plugin.PluginImpl.RunOnce(ctx, k8sclient); err != nil {
 					glog.Info("encountered error while running plugin; trying again in 5 seconds", " err: ", err)
 					select {
 					case <-ctx.Done():
@@ -98,7 +84,7 @@ func (plugin *PluginBase) registerWithKubelet() error {
 	request := &pluginapi.RegisterRequest{
 		Version:      pluginapi.Version,
 		Endpoint:     filepath.Base(plugin.socket),
-		ResourceName: plugin.resource,
+		ResourceName: string(plugin.resource),
 	}
 	if _, err = client.Register(context.Background(), request); err != nil {
 		return fmt.Errorf("failed to register plugin with kubelet service: %v", err)
