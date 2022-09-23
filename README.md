@@ -7,6 +7,9 @@
 -->
 # sfc-virtual-device-plugin
 
+## TODO(Most Important):
+  I have changed most part of code, this README could be out-of-date. I'm working for revising it.
+
 ## Introduction:
 The virtual SFC device plugin is a DaemonSet of the Kubernetes Cluster. Provide a TX/RX-like queue for every pod so that client can use DMA send or receive under less memory copy consumption. Bazel supports the whole project for easy compiling, using, and deploying.
 
